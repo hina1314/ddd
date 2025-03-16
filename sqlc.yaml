@@ -1,0 +1,15 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "./db/query/"
+    schema: "./db/migration/"
+    gen:
+      go:
+        package: "model"
+        out: "./db/model"
+        emit_exact_table_names: false #If true, struct names will mirror table names. Otherwise, sqlc attempts to singularize plural table names. Defaults to false.
+        emit_json_tags: true
+        emit_interface: true
+        overrides:
+          - db_type: "tinyint"
+            go_type: "int"
