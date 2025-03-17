@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gofiber/fiber/v3"
 	"log"
-	"study/internal/router"
+	"study/internal/api/router"
 	"study/internal/svc"
 	"study/util"
 )

@@ -7,7 +7,7 @@ import (
 	"github.com/lib/pq"
 	"regexp"
 	"study/db/model"
-	"study/internal/middleware"
+	"study/internal/api/middleware"
 	"study/token"
 	"study/util"
 	"time"

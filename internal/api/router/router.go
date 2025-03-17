@@ -1,8 +1,8 @@
 package router
 
 import (
-	"study/internal/handler"
-	"study/internal/middleware"
+	"study/internal/api/handler"
+	"study/internal/api/middleware"
 	"study/internal/svc"
 
 	"github.com/gofiber/fiber/v3"
