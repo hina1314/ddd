@@ -1,23 +1,20 @@
 package router
 
 import (
+	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler"
 	"study/internal/api/middleware"
-	"study/internal/svc"
-
-	"github.com/gofiber/fiber/v3"
 )
 
 // SetupRouter 配置路由
-func SetupRouter(app *fiber.App, svc *svc.ServiceContext) {
-	// 示例：用户相关的路由组
-	h := handler.NewHandler(svc)
-	app.Post("/signup", h.CreateUser)
-	app.Post("/login", h.Login)
+func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
 
-	user := app.Group("/user").Use(middleware.AuthMiddleware(svc.TokenMaker))
+	app.Post("/signup", userHandler.CreateUser)
+	app.Post("/login", userHandler.Login)
+
+	user := app.Group("/user").Use(middleware.AuthMiddleware(userHandler.Handler.Svc.TokenMaker))
 	{
-		user.Post("/update", h.Update)
+		user.Post("/update", userHandler.Update)
 	}
 
 	// 可以添加更多路由组，例如 admin

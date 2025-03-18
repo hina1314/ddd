@@ -26,8 +26,12 @@ func (s *UserService) GetUserById(ctx context.Context, id int64) (*user.User, er
 	return user, nil
 }
 
-func (s *UserService) RegisterUser(ctx context.Context, name, email, fullName, password string) (*user.User, error) {
-	newUser, err := s.service.RegisterUser(ctx, name, email, fullName, password)
+func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, password string) (*user.User, error) {
+	newUser, err := s.service.RegisterUser(ctx, name, phone, email, password)
+	if err != nil {
+		return nil, err
+	}
+	err = s.repo.Save(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}

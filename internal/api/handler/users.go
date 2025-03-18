@@ -10,72 +10,71 @@ import (
 	"study/internal/api/middleware"
 	"study/token"
 	"study/util"
-	"time"
 )
 
-type createUserRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Username string `json:"username" binding:"required,alphanumunicode"`
-	Password string `json:"password" binding:"required,min=6"`
-	//Email    string `json:"email" binding:"required,email"`
-}
+//type createUserRequest struct {
+//	Phone    string `json:"phone" binding:"required"`
+//	Username string `json:"username" binding:"required,alphanumunicode"`
+//	Password string `json:"password" binding:"required,min=6"`
+//	Email    string `json:"email" binding:"required,email"`
+//}
+//
+//type userResponse struct {
+//	Phone       string    `json:"phone"`
+//	Username    string    `json:"username"`
+//	Email       string    `json:"email"`
+//	AccessToken string    `json:"access_token"`
+//	CreatedAt   time.Time `json:"created_at"`
+//}
+//
+//func newUserResponse(user model.User) userResponse {
+//	return userResponse{
+//		Phone:     user.Phone,
+//		Username:  user.Username,
+//		CreatedAt: user.CreatedAt,
+//	}
+//}
 
-type userResponse struct {
-	Phone    string `json:"phone"`
-	Username string `json:"username"`
-	//Email             string    `json:"email"`
-	AccessToken string    `json:"access_token"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-func newUserResponse(user model.User) userResponse {
-	return userResponse{
-		Phone:     user.Phone,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-	}
-}
-
-func (h *Handler) CreateUser(c fiber.Ctx) error {
-	var req createUserRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.JSON(errorResponse(err))
-	}
-
-	// 手动验证手机号格式
-	if !regexp.MustCompile(`^1[3-9]\d{9}$`).MatchString(req.Phone) {
-		return c.JSON("手机号格式不正确")
-
-	}
-
-	hashPassword, err := util.HashPassword(req.Password)
-	if err != nil {
-		return c.JSON(errorResponse(err))
-	}
-	arg := model.CreateUserParams{
-		Phone:    req.Phone,
-		Username: req.Username,
-		Password: hashPassword,
-	}
-
-	user, err := h.svc.Db.CreateUser(c.Context(), arg)
-	if err != nil {
-		//如果是数据库出错
-		if pqErr, ok := err.(*pq.Error); ok {
-			switch pqErr.Code.Name() {
-			case "unique_violation":
-				return c.JSON("手机号或用户名已存在")
-			}
-		}
-		return c.JSON(errorResponse(err))
-	}
-	resp := userResponse{
-		Phone:     user.Phone,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-	}
-	return c.JSON(resp)
-}
+//func (h *Handler) CreateUser(c fiber.Ctx) error {
+//	var req createUserRequest
+//	if err := c.Bind().JSON(&req); err != nil {
+//		return c.JSON(errorResponse(err))
+//	}
+//
+//	// 手动验证手机号格式
+//	if !regexp.MustCompile(`^1[3-9]\d{9}$`).MatchString(req.Phone) {
+//		return c.JSON("手机号格式不正确")
+//
+//	}
+//
+//	hashPassword, err := util.HashPassword(req.Password)
+//	if err != nil {
+//		return c.JSON(errorResponse(err))
+//	}
+//	arg := model.CreateUserParams{
+//		Phone:    req.Phone,
+//		Username: req.Username,
+//		Password: hashPassword,
+//	}
+//
+//	user, err := h.svc.Db.CreateUser(c.Context(), arg)
+//	if err != nil {
+//		//如果是数据库出错
+//		if pqErr, ok := err.(*pq.Error); ok {
+//			switch pqErr.Code.Name() {
+//			case "unique_violation":
+//				return c.JSON("手机号或用户名已存在")
+//			}
+//		}
+//		return c.JSON(errorResponse(err))
+//	}
+//	resp := userResponse{
+//		Phone:     user.Phone,
+//		Username:  user.Username,
+//		CreatedAt: user.CreatedAt,
+//	}
+//	return c.JSON(resp)
+//}
 
 type loginUserRequest struct {
 	Phone    string `json:"phone" binding:"required"`

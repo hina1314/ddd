@@ -2,16 +2,16 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"study/internal/domain/user"
+	"study/internal/svc"
 )
 
 type UserAccountRepositoryImpl struct {
-	db *sql.DB
+	ctxSvc *svc.ServiceContext
 }
 
-func NewUserAccountRepository(db *sql.DB) user.UserAccountRepository {
-	return &UserAccountRepositoryImpl{}
+func NewUserAccountRepository(ctxSvc *svc.ServiceContext) user.UserAccountRepository {
+	return &UserAccountRepositoryImpl{ctxSvc: ctxSvc}
 }
 
 func (u UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.UserAccount, error) {

@@ -13,26 +13,34 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     phone,
+    email,
     username,
     password
 ) VALUES (
-             $1, $2, $3
+             $1, $2, $3, $4
          )
-    RETURNING id, phone, username, password, created_at, updated_at, deleted_at
+    RETURNING id, phone, email, username, password, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
 	Phone    string `json:"phone"`
+	Email    string `json:"email"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Phone, arg.Username, arg.Password)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Phone,
+		arg.Email,
+		arg.Username,
+		arg.Password,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Phone,
+		&i.Email,
 		&i.Username,
 		&i.Password,
 		&i.CreatedAt,
@@ -53,7 +61,7 @@ func (q *Queries) DeleteAuthor(ctx context.Context, id int64) error {
 }
 
 const findUserByPhone = `-- name: FindUserByPhone :one
-SELECT id, phone, username, password, created_at, updated_at, deleted_at FROM users WHERE phone = $1
+SELECT id, phone, email, username, password, created_at, updated_at, deleted_at FROM users WHERE phone = $1
 `
 
 func (q *Queries) FindUserByPhone(ctx context.Context, phone string) (User, error) {
@@ -62,6 +70,7 @@ func (q *Queries) FindUserByPhone(ctx context.Context, phone string) (User, erro
 	err := row.Scan(
 		&i.ID,
 		&i.Phone,
+		&i.Email,
 		&i.Username,
 		&i.Password,
 		&i.CreatedAt,

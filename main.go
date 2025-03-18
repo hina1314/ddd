@@ -3,7 +3,10 @@ package main
 import (
 	"github.com/gofiber/fiber/v3"
 	"log"
+	"study/internal/api/handler"
 	"study/internal/api/router"
+	"study/internal/app"
+	"study/internal/infra/repository"
 	"study/internal/svc"
 	"study/util"
 )
@@ -14,13 +17,22 @@ func main() {
 		log.Fatal("cannot load config files")
 	}
 
+	// 依赖注入
 	svcCtx := svc.NewServiceContext(config)
-	app := fiber.New()
+
+	userRepo := repository.NewUserRepository(svcCtx)
+	userAccountRepo := repository.NewUserAccountRepository(svcCtx)
+
+	userService := app.NewUserService(userRepo, userAccountRepo)
+
+	h := handler.NewHandler(svcCtx)
+	userHandler := handler.NewUserHandler(h, userService)
+	server := fiber.New()
 
 	// 配置路由
-	router.SetupRouter(app, svcCtx)
+	router.SetupRouter(server, userHandler)
 
-	err = app.Listen(config.ServerAddress)
+	err = server.Listen(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server")
 	}

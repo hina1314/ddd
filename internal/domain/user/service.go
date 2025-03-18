@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"study/util"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,7 +23,7 @@ func NewDomainService(userRepo UserRepository, userAccountRepo UserAccountReposi
 }
 
 // RegisterUser 注册新用户（包含账户创建）
-func (s *DomainService) RegisterUser(ctx context.Context, username, email, fullName, password string) (*User, error) {
+func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email, password string) (*User, error) {
 	// 检查用户名唯一性
 	existingUser, _ := s.userRepo.GetByUsername(ctx, username)
 	if existingUser != nil {
@@ -35,8 +36,12 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, email, fullN
 		return nil, errors.New("email already exists")
 	}
 
+	passwordHash, err := util.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
 	// 创建用户
-	user, err := NewUser(username, email, fullName)
+	user, err := NewUser(username, phone, email, passwordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +51,8 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, email, fullN
 		return nil, err
 	}
 
-	// 生成密码哈希
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
 	// 创建账户
-	account := NewUserAccount(user.ID, passwordHash)
+	account := NewUserAccount(user.ID)
 
 	// 保存账户
 	if err := s.userAccountRepo.Save(ctx, account); err != nil {

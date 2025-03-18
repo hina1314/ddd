@@ -7,21 +7,21 @@ import (
 
 // User 实体代表用户的基本信息
 type User struct {
-	ID          string
-	Username    string
-	Email       Email // 值对象
-	FullName    string
-	PhoneNumber string
-	AvatarURL   string
-	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID        string
+	Username  string
+	Email     Email // 值对象
+	Phone     string
+	Password  string
+	Avatar    string
+	IsActive  bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
 	// Account 引用，而不是直接包含账户信息
 	AccountID int64
 }
 
 // NewUser 创建一个新用户
-func NewUser(username string, email string, fullName string) (*User, error) {
+func NewUser(username, phone, email, password string) (*User, error) {
 	emailVO, err := NewEmail(email)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,8 @@ func NewUser(username string, email string, fullName string) (*User, error) {
 	return &User{
 		Username:  username,
 		Email:     emailVO,
-		FullName:  fullName,
+		Phone:     phone,
+		Password:  password,
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Time{},
@@ -38,15 +39,12 @@ func NewUser(username string, email string, fullName string) (*User, error) {
 }
 
 // UpdateProfile 更新用户资料
-func (u *User) UpdateProfile(fullName, phoneNumber, avatarURL string) {
-	if fullName != "" {
-		u.FullName = fullName
+func (u *User) UpdateProfile(phone, avatar string) {
+	if phone != "" {
+		u.Phone = phone
 	}
-	if phoneNumber != "" {
-		u.PhoneNumber = phoneNumber
-	}
-	if avatarURL != "" {
-		u.AvatarURL = avatarURL
+	if avatar != "" {
+		u.Avatar = avatar
 	}
 	u.UpdatedAt = time.Now()
 }
@@ -69,29 +67,34 @@ func (u *User) Activate() {
 	u.UpdatedAt = time.Time{}
 }
 
+// ChangePassword 更改密码
+func (u *User) ChangePassword(newPasswordHash string) {
+	u.Password = newPasswordHash
+	u.UpdatedAt = time.Now()
+}
+
 // UserAccount 实体代表用户的账户信息
 type UserAccount struct {
-	ID           int64
-	UserID       string
-	PasswordHash []byte
-	LastLoginAt  *time.Time
-	LoginCount   int
-	Balance      Money  // 值对象
-	Status       string // "active", "suspended", "closed"
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID             int64
+	UserID         string
+	LastLoginAt    *time.Time
+	LoginCount     int
+	FronzenBalance Money
+	Balance        Money  // 值对象
+	Status         string // "active", "suspended", "closed"
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // NewUserAccount 创建一个新的用户账户
-func NewUserAccount(userID string, passwordHash []byte) *UserAccount {
+func NewUserAccount(userID string) *UserAccount {
 	return &UserAccount{
-		UserID:       userID,
-		PasswordHash: passwordHash,
-		LoginCount:   0,
-		Balance:      NewMoney(0, "USD"),
-		Status:       "active",
-		CreatedAt:    time.Time{},
-		UpdatedAt:    time.Time{},
+		UserID:     userID,
+		LoginCount: 0,
+		Balance:    NewMoney(0, "USD"),
+		Status:     "active",
+		CreatedAt:  time.Time{},
+		UpdatedAt:  time.Time{},
 	}
 }
 
@@ -101,12 +104,6 @@ func (ua *UserAccount) RecordLogin() {
 	ua.LastLoginAt = &now
 	ua.LoginCount++
 	ua.UpdatedAt = now
-}
-
-// ChangePassword 更改密码
-func (ua *UserAccount) ChangePassword(newPasswordHash []byte) {
-	ua.PasswordHash = newPasswordHash
-	ua.UpdatedAt = time.Now()
 }
 
 // AddFunds 充值账户
