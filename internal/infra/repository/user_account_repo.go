@@ -2,16 +2,19 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"study/db/model"
 	"study/internal/domain/user"
-	"study/internal/svc"
 )
 
 type UserAccountRepositoryImpl struct {
-	ctxSvc *svc.ServiceContext
+	db model.Store
 }
 
-func NewUserAccountRepository(ctxSvc *svc.ServiceContext) user.UserAccountRepository {
-	return &UserAccountRepositoryImpl{ctxSvc: ctxSvc}
+func NewUserAccountRepository(db *sql.DB) user.UserAccountRepository {
+	return &UserAccountRepositoryImpl{
+		db: model.NewStore(db),
+	}
 }
 
 func (u UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.UserAccount, error) {
@@ -19,7 +22,7 @@ func (u UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user
 	panic("implement me")
 }
 
-func (u UserAccountRepositoryImpl) GetByUserID(ctx context.Context, userID string) (*user.UserAccount, error) {
+func (u UserAccountRepositoryImpl) GetByUserID(ctx context.Context, userID int64) (*user.UserAccount, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -34,7 +37,7 @@ func (u UserAccountRepositoryImpl) Update(ctx context.Context, account *user.Use
 	panic("implement me")
 }
 
-func (u UserAccountRepositoryImpl) Delete(ctx context.Context, id string) error {
+func (u UserAccountRepositoryImpl) Delete(ctx context.Context, id int64) error {
 	//TODO implement me
 	panic("implement me")
 }

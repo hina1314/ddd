@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"study/util"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 // DomainService 用户领域服务
@@ -95,23 +93,23 @@ func (s *DomainService) AuthenticateUser(ctx context.Context, usernameOrEmail, p
 		return nil, errors.New("user account is deactivated")
 	}
 
-	// 获取用户账户
-	account, err := s.userAccountRepo.GetByUserID(ctx, user.ID)
-	if err != nil {
-		return nil, errors.New("user account not found")
-	}
-
-	// 验证密码
-	if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(password)); err != nil {
-		return nil, errors.New("invalid credentials")
-	}
-
-	// 记录登录
-	account.RecordLogin()
-	if err := s.userAccountRepo.Update(ctx, account); err != nil {
-		// 仅记录错误，不影响认证流程
-		// logger.Error("Failed to update login record", err)
-	}
+	//// 获取用户账户
+	//account, err := s.userRepo.GetByUserID(ctx, user.ID)
+	//if err != nil {
+	//	return nil, errors.New("user account not found")
+	//}
+	//
+	//// 验证密码
+	//if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(password)); err != nil {
+	//	return nil, errors.New("invalid credentials")
+	//}
+	//
+	//// 记录登录
+	//account.RecordLogin()
+	//if err := s.userAccountRepo.Update(ctx, account); err != nil {
+	//	// 仅记录错误，不影响认证流程
+	//	// logger.Error("Failed to update login record", err)
+	//}
 
 	return user, nil
 }
@@ -130,24 +128,24 @@ func (s *DomainService) ChangeUserPassword(ctx context.Context, userID int64, cu
 		return err
 	}
 
-	// 验证当前密码
-	if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(currentPassword)); err != nil {
-		return errors.New("current password is incorrect")
-	}
-
-	// 生成新密码哈希
-	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	// 更新密码
-	account.ChangePassword(newPasswordHash)
+	//// 验证当前密码
+	//if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(currentPassword)); err != nil {
+	//	return errors.New("current password is incorrect")
+	//}
+	//
+	//// 生成新密码哈希
+	//newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//// 更新密码
+	//account.ChangePassword(newPasswordHash)
 	return s.userAccountRepo.Update(ctx, account)
 }
 
 // AddFundsToAccount 为用户账户充值
-func (s *DomainService) AddFundsToAccount(ctx context.Context, userID string, amount float64) error {
+func (s *DomainService) AddFundsToAccount(ctx context.Context, userID int64, amount float64) error {
 	// 获取账户
 	account, err := s.userAccountRepo.GetByUserID(ctx, userID)
 	if err != nil {

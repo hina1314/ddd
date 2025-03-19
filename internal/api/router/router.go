@@ -6,20 +6,22 @@ import (
 	"study/internal/api/middleware"
 )
 
-// SetupRouter 配置路由
+// SetupRouter 配置所有路由
 func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
+	// 全局中间件（如日志）
+	app.Use(middleware.Logger())
 
-	app.Post("/signup", userHandler.CreateUser)
-	app.Post("/login", userHandler.Login)
+	// API 版本分组
+	v1 := app.Group("/api/v1")
 
-	user := app.Group("/user").Use(middleware.AuthMiddleware(userHandler.Handler.Svc.TokenMaker))
-	{
-		user.Post("/update", userHandler.Update)
-	}
+	// 用户相关路由
+	setupUserRoutes(v1, userHandler)
+}
 
-	// 可以添加更多路由组，例如 admin
-	//admin := app.Group("/admin").Use(middleware.AuthMiddleware(svc.TokenMaker)) // 中间件示例
-	//{
-	//	admin.Get("/dashboard", nil)
-	//}
+// setupUserRoutes 用户模块路由
+func setupUserRoutes(group fiber.Router, h *handler.UserHandler) {
+	users := group.Group("/user")
+	users.Post("/signup", h.CreateUser) // 创建用户
+	// 可扩展其他用户路由，例如：
+	// users.Get("/:id", h.GetUserByID)
 }

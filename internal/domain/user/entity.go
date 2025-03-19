@@ -7,7 +7,7 @@ import (
 
 // User 实体代表用户的基本信息
 type User struct {
-	ID        string
+	ID        int64
 	Username  string
 	Email     Email // 值对象
 	Phone     string
@@ -76,7 +76,7 @@ func (u *User) ChangePassword(newPasswordHash string) {
 // UserAccount 实体代表用户的账户信息
 type UserAccount struct {
 	ID             int64
-	UserID         string
+	UserID         int64
 	LastLoginAt    *time.Time
 	LoginCount     int
 	FronzenBalance Money
@@ -87,7 +87,7 @@ type UserAccount struct {
 }
 
 // NewUserAccount 创建一个新的用户账户
-func NewUserAccount(userID string) *UserAccount {
+func NewUserAccount(userID int64) *UserAccount {
 	return &UserAccount{
 		UserID:     userID,
 		LoginCount: 0,

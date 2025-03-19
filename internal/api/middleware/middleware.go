@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v3"
+	"log"
 	"net/http"
 	"strings"
 	"study/token"
+	"time"
 )
 
 const (
@@ -15,7 +17,7 @@ const (
 	AuthorizationPayloadKey = "authorization_payload"
 )
 
-func AuthMiddleware(tokenMaker token.Maker) fiber.Handler {
+func Auth(tokenMaker token.Maker) fiber.Handler {
 	return func(ctx fiber.Ctx) error {
 		authorizationHeader := ctx.Get(authorizationHeaderKey)
 		if len(authorizationHeader) == 0 {
@@ -41,3 +43,17 @@ func AuthMiddleware(tokenMaker token.Maker) fiber.Handler {
 		return ctx.Next()
 	}
 }
+
+func Logger() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next()
+		log.Printf("%s %s %v in %v", c.Method(), c.Path(), c.Response().StatusCode(), time.Since(start))
+		return err
+	}
+}
+
+// 可添加其他中间件，如认证
+// func Auth(tokenMaker token.Maker) fiber.Handler {
+//     return func(c *fiber.Ctx) error { ... }
+// }

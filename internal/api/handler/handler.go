@@ -1,16 +1,25 @@
 package handler
 
 import (
-	"study/internal/svc"
+	"github.com/gofiber/fiber/v3"
 )
 
-type Handler struct {
-	Svc *svc.ServiceContext
+// BaseHandler 基础处理器，定义通用方法
+type BaseHandler struct{}
+
+func NewBaseHandler() *BaseHandler {
+	return &BaseHandler{}
 }
 
-func NewHandler(svc *svc.ServiceContext) *Handler {
-	return &Handler{
-		Svc: svc,
+// ErrorResponse 统一错误响应
+func (h *BaseHandler) ErrorResponse(c fiber.Ctx, err error) error {
+	switch err.Error() {
+	case "unique_violation":
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "手机号或用户名已存在"})
+	case "invalid_phone":
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "手机号格式不正确"})
+	default:
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 }
 
