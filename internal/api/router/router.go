@@ -12,7 +12,7 @@ func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
 	app.Use(middleware.Logger())
 
 	// API 版本分组
-	v1 := app.Group("/api/v1")
+	v1 := app.Group("/v1")
 
 	// 用户相关路由
 	setupUserRoutes(v1, userHandler)
@@ -22,6 +22,4 @@ func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
 func setupUserRoutes(group fiber.Router, h *handler.UserHandler) {
 	users := group.Group("/user")
 	users.Post("/signup", h.CreateUser) // 创建用户
-	// 可扩展其他用户路由，例如：
-	// users.Get("/:id", h.GetUserByID)
 }

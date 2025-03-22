@@ -15,7 +15,18 @@ type User struct {
 	Email     string       `json:"email"`
 	Username  string       `json:"username"`
 	Password  string       `json:"password"`
+	Avatar    string       `json:"avatar"`
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 	DeletedAt sql.NullTime `json:"deleted_at"`
+}
+
+type UserAccount struct {
+	ID            int64        `json:"id"`
+	UserID        int64        `json:"user_id"`
+	FrozenBalance string       `json:"frozen_balance"`
+	Balance       string       `json:"balance"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
+	DeletedAt     sql.NullTime `json:"deleted_at"`
 }

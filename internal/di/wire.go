@@ -1,8 +1,12 @@
+//go:build wireinject
+// +build wireinject
+
 package di
 
 import (
 	"database/sql"
 	"github.com/google/wire"
+	_ "github.com/lib/pq"
 	"study/internal/api/handler"
 	"study/internal/app"
 	"study/internal/domain/user"

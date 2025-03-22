@@ -4,6 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/internal/app"
+	"study/internal/domain/user"
 	"time"
 )
 
@@ -20,10 +21,10 @@ func NewUserHandler(userService *app.UserService) *UserHandler {
 }
 
 type CreateUserRequest struct {
-	Phone    string `json:"phone" validate:"required,phone"`
+	Phone    string `json:"phone" validate:"required"`
 	Username string `json:"username" validate:"required,alphanumunicode"`
 	Password string `json:"password" validate:"required,min=6"`
-	Email    string `json:"email" validate:"required,email"`
+	Email    string `json:"email" validate:"email"`
 }
 
 type UserResponse struct {
@@ -39,7 +40,7 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	if err := c.Bind().Body(&req); err != nil {
 		return h.base.ErrorResponse(c, err)
 	}
-
+	
 	// 使用 validator 库验证（需引入 "github.com/go-playground/validator/v10"）
 	// 这里假设添加了 phone 自定义验证规则
 	validate := validator.New()
@@ -52,13 +53,16 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 		return h.base.ErrorResponse(c, err)
 	}
 
-	resp := UserResponse{
-		Phone:     newUser.Phone,
-		Username:  newUser.Username,
-		Email:     newUser.Email.String(),
-		CreatedAt: newUser.CreatedAt,
+	return c.JSON(NewUserResponse(newUser))
+}
+
+func NewUserResponse(user *user.User) UserResponse {
+	return UserResponse{
+		Phone:     user.Phone,
+		Username:  user.Username,
+		Email:     user.Email.String(),
+		CreatedAt: user.CreatedAt,
 	}
-	return c.JSON(resp)
 }
 
 //func (h *UserHandler) Login(c fiber.Ctx) error {

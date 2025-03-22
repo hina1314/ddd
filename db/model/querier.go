@@ -6,15 +6,18 @@ package model
 
 import (
 	"context"
-	"database/sql"
 )
 
 type Querier interface {
+	CountUsers(ctx context.Context) (int64, error)
+	CreateAccount(ctx context.Context, arg CreateAccountParams) (UserAccount, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteAuthor(ctx context.Context, id int64) error
-	FindUserByPhone(ctx context.Context, phone string) (User, error)
-	UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) (sql.Result, error)
-	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (sql.Result, error)
+	DeleteUser(ctx context.Context, id int64) error
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id int64) (User, error)
+	GetUserByUsername(ctx context.Context, username string) (User, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)

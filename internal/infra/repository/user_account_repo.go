@@ -28,8 +28,21 @@ func (u UserAccountRepositoryImpl) GetByUserID(ctx context.Context, userID int64
 }
 
 func (u UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserAccount) error {
-	//TODO implement me
-	panic("implement me")
+
+	arg := model.CreateAccountParams{
+		UserID:        account.UserID,
+		FrozenBalance: account.FrozenBalance.String(),
+		Balance:       account.Balance.String(),
+	}
+	newAcc, err := u.db.CreateAccount(ctx, arg)
+	if err != nil {
+		return err
+	}
+
+	account.ID = newAcc.ID
+	account.CreatedAt = newAcc.CreatedAt
+	account.UpdatedAt = newAcc.UpdatedAt
+	return nil
 }
 
 func (u UserAccountRepositoryImpl) Update(ctx context.Context, account *user.UserAccount) error {

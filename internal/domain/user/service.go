@@ -39,7 +39,7 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 		return nil, err
 	}
 	// 创建用户
-	user, err := NewUser(username, phone, email, passwordHash)
+	user, err := NewUser(phone, email, username, passwordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +56,6 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 	if err := s.userAccountRepo.Save(ctx, account); err != nil {
 		// 回滚用户创建
 		_ = s.userRepo.Delete(ctx, user.ID)
-		return nil, err
-	}
-
-	// 更新用户关联的账户ID
-	user.SetAccountID(account.ID)
-	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -86,11 +80,6 @@ func (s *DomainService) AuthenticateUser(ctx context.Context, usernameOrEmail, p
 
 	if err != nil || user == nil {
 		return nil, errors.New("invalid credentials")
-	}
-
-	// 检查用户状态
-	if !user.IsActive {
-		return nil, errors.New("user account is deactivated")
 	}
 
 	//// 获取用户账户

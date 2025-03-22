@@ -18,5 +18,6 @@ migrate_down:
 
 sqlc:
 	sqlc generate
-
+wire:
+	wire gen ./internal/di/wire.go
 .PHONY: code migrate_up migrate_down sqlc
