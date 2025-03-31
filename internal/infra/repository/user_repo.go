@@ -13,9 +13,9 @@ type UserRepositoryImpl struct {
 	db model.Store // 使用 sqlc 生成的 Queries
 }
 
-func NewUserRepository(db *sql.DB) user.UserRepository {
+func NewUserRepository(store model.Store) user.UserRepository {
 	return &UserRepositoryImpl{
-		db: model.NewStore(db),
+		db: store,
 	}
 }
 

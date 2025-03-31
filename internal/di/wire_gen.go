@@ -8,6 +8,7 @@ package di
 
 import (
 	"database/sql"
+	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
 	"study/internal/domain/user"
@@ -22,12 +23,12 @@ import (
 // Injectors from wire.go:
 
 func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
-	db, err := NewDB(cfg)
+	store, err := NewDB(cfg)
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repository.NewUserRepository(db)
-	userAccountRepository := repository.NewUserAccountRepository(db)
+	userRepository := repository.NewUserRepository(store)
+	userAccountRepository := repository.NewUserAccountRepository(store)
 	domainService := user.NewDomainService(userRepository, userAccountRepository)
 	userService := app.NewUserService(domainService)
 	userHandler := handler.NewUserHandler(userService)
@@ -43,10 +44,10 @@ type Dependencies struct {
 	UserHandler *handler.UserHandler
 }
 
-func NewDB(cfg util.Config) (*sql.DB, error) {
+func NewDB(cfg util.Config) (model.Store, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return model.NewStore(db), nil
 }

@@ -43,7 +43,7 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 	if err != nil {
 		return nil, err
 	}
-
+	
 	// 保存用户
 	if err := s.userRepo.Save(ctx, user); err != nil {
 		return nil, err

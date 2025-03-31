@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"study/db/model"
 	"study/internal/domain/user"
 )
@@ -11,9 +10,9 @@ type UserAccountRepositoryImpl struct {
 	db model.Store
 }
 
-func NewUserAccountRepository(db *sql.DB) user.UserAccountRepository {
+func NewUserAccountRepository(store model.Store) user.UserAccountRepository {
 	return &UserAccountRepositoryImpl{
-		db: model.NewStore(db),
+		db: store,
 	}
 }
 

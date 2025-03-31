@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"github.com/google/wire"
 	_ "github.com/lib/pq"
+	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
 	"study/internal/domain/user"
@@ -40,10 +41,10 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	return &Dependencies{}, nil
 }
 
-func NewDB(cfg util.Config) (*sql.DB, error) {
+func NewDB(cfg util.Config) (model.Store, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return model.NewStore(db), nil
 }
