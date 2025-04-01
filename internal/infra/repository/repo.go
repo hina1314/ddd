@@ -5,10 +5,8 @@ import (
 	"study/db/model"
 )
 
-type txKey struct{}
-
 func (r *UserRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
-	if tx, ok := ctx.Value(txKey{}).(model.Tx); ok {
+	if tx, ok := ctx.Value(model.TxKey{}).(model.Tx); ok {
 		return tx
 	}
 	return r.db

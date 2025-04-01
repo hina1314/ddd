@@ -6,10 +6,13 @@ import (
 	"fmt"
 )
 
+type TxKey struct{} // 唯一的事务键
+
 // TxManager 定义事务管理接口
 type TxManager interface {
 	Querier
 	Begin(ctx context.Context) (Tx, error)
+	ExecTx(ctx context.Context, fn func(Tx) error) error
 }
 
 // Tx 定义事务操作接口
@@ -57,18 +60,18 @@ func (t *SQLTransaction) Rollback() error {
 	return t.tx.Rollback()
 }
 
-// ExecTx executes a function within a database transaction
-func (store *SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) error {
-	tx, err := store.db.BeginTx(ctx, nil)
+func (m *SQLStore) ExecTx(ctx context.Context, fn func(Tx) error) error {
+	tx, err := m.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("start transaction: %w", err)
 	}
-	q := New(tx)
-	err = fn(q)
-	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("tx err:%v ,rb err:%v", err, rbErr)
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
 		}
+	}()
+
+	if err = fn(tx); err != nil {
 		return err
 	}
 	return tx.Commit()
