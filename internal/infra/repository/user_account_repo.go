@@ -7,10 +7,10 @@ import (
 )
 
 type UserAccountRepositoryImpl struct {
-	db model.Store
+	db model.TxManager
 }
 
-func NewUserAccountRepository(store model.Store) user.UserAccountRepository {
+func NewUserAccountRepository(store model.TxManager) user.UserAccountRepository {
 	return &UserAccountRepositoryImpl{
 		db: store,
 	}

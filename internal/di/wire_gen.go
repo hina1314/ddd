@@ -23,14 +23,14 @@ import (
 // Injectors from wire.go:
 
 func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
-	store, err := NewDB(cfg)
+	txManager, err := NewDB(cfg)
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repository.NewUserRepository(store)
-	userAccountRepository := repository.NewUserAccountRepository(store)
+	userRepository := repository.NewUserRepository(txManager)
+	userAccountRepository := repository.NewUserAccountRepository(txManager)
 	domainService := user.NewDomainService(userRepository, userAccountRepository)
-	userService := app.NewUserService(domainService)
+	userService := app.NewUserService(domainService, txManager)
 	userHandler := handler.NewUserHandler(userService)
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
@@ -44,7 +44,7 @@ type Dependencies struct {
 	UserHandler *handler.UserHandler
 }
 
-func NewDB(cfg util.Config) (model.Store, error) {
+func NewDB(cfg util.Config) (model.TxManager, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err

@@ -10,10 +10,10 @@ import (
 )
 
 type UserRepositoryImpl struct {
-	db model.Store // 使用 sqlc 生成的 Queries
+	db model.TxManager // 使用 sqlc 生成的 Queries
 }
 
-func NewUserRepository(store model.Store) user.UserRepository {
+func NewUserRepository(store model.TxManager) user.UserRepository {
 	return &UserRepositoryImpl{
 		db: store,
 	}
@@ -45,7 +45,7 @@ func (r *UserRepositoryImpl) toDomain(u model.User) (*user.User, error) {
 }
 
 func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string) (*user.User, error) {
-	u, err := r.db.GetUserByUsername(ctx, username)
+	u, err := r.getQuerier(ctx).GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // 用户不存在
@@ -56,7 +56,7 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 }
 
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.User, error) {
-	u, err := r.db.GetUserByID(ctx, id)
+	u, err := r.getQuerier(ctx).GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -67,7 +67,7 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.User,
 }
 
 func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*user.User, error) {
-	u, err := r.db.GetUserByEmail(ctx, email)
+	u, err := r.getQuerier(ctx).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -84,7 +84,8 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
 		Username: u.Username,
 		Password: u.Password,
 	}
-	result, err := r.db.CreateUser(ctx, arg)
+
+	result, err := r.getQuerier(ctx).CreateUser(ctx, arg)
 	if err != nil {
 		return err
 	}
@@ -102,15 +103,15 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, u *user.User) error {
 		Username: u.Username,
 		Password: u.Password,
 	}
-	return r.db.UpdateUser(ctx, arg)
+	return r.getQuerier(ctx).UpdateUser(ctx, arg)
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id int64) error {
-	return r.db.DeleteUser(ctx, id)
+	return r.getQuerier(ctx).DeleteUser(ctx, id)
 }
 
 func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*user.User, int, error) {
-	users, err := r.db.ListUsers(ctx, model.ListUsersParams{
+	users, err := r.getQuerier(ctx).ListUsers(ctx, model.ListUsersParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -128,7 +129,7 @@ func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*us
 	}
 
 	// **修复 CountUsers 需要查询数据库**
-	count, err := r.db.CountUsers(ctx)
+	count, err := r.getQuerier(ctx).CountUsers(ctx)
 	if err != nil {
 		return nil, 0, err
 	}

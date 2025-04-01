@@ -41,7 +41,7 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	return &Dependencies{}, nil
 }
 
-func NewDB(cfg util.Config) (model.Store, error) {
+func NewDB(cfg util.Config) (model.TxManager, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err
