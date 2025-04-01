@@ -16,6 +16,13 @@ func NewUserAccountRepository(store model.TxManager) user.UserAccountRepository 
 	}
 }
 
+func (r *UserAccountRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
+	if tx, ok := ctx.Value(model.TxKey{}).(model.Tx); ok {
+		return tx
+	}
+	return r.db
+}
+
 func (u UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.UserAccount, error) {
 	//TODO implement me
 	panic("implement me")
@@ -33,7 +40,7 @@ func (u UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserA
 		FrozenBalance: account.FrozenBalance.String(),
 		Balance:       account.Balance.String(),
 	}
-	newAcc, err := u.db.CreateAccount(ctx, arg)
+	newAcc, err := u.getQuerier(ctx).CreateAccount(ctx, arg)
 	if err != nil {
 		return err
 	}

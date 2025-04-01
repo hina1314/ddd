@@ -19,6 +19,13 @@ func NewUserRepository(store model.TxManager) user.UserRepository {
 	}
 }
 
+func (r *UserRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
+	if tx, ok := ctx.Value(model.TxKey{}).(model.Tx); ok {
+		return tx
+	}
+	return r.db
+}
+
 // **通用转换方法：model.User → user.User**
 func (r *UserRepositoryImpl) toDomain(u model.User) (*user.User, error) {
 	emailVO, err := user.NewEmail(u.Email)
