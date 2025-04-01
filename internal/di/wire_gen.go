@@ -30,7 +30,7 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	userRepository := repository.NewUserRepository(store)
 	userAccountRepository := repository.NewUserAccountRepository(store)
 	domainService := user.NewDomainService(userRepository, userAccountRepository)
-	userService := app.NewUserService(domainService)
+	userService := app.NewUserService(domainService, store)
 	userHandler := handler.NewUserHandler(userService)
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
