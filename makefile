@@ -1,20 +1,13 @@
-code:
-	goctl api go --api ./dsl/user.api --dir .
-
-mysql:
-	goctl model mysql datasource --url="root:root@tcp(192.168.1.10:5432)/yajiang" -table="*" -dir="./internal/model"
-
-postgres:
-	goctl model pg datasource --url="postgres://postgres:mysecretpassword@192.168.1.10:5432/postgres" --table="*" -dir="./db/model"
+postgres = "postgres://postgres:123456@127.0.0.1:5432/postgres?sslmode=disable"
 
 migrate_init:
 	migrate create -ext sql -dir ./db/migration -seq init_schema
 
 migrate_up:
-	migrate -path db/migration -database "postgres://postgres:mysecretpassword@192.168.1.10:5432/postgres?sslmode=disable" --verbose up
+	migrate -path db/migration -database $(postgres) --verbose up
 
 migrate_down:
-	migrate -path db/migration -database "postgres://postgres:mysecretpassword@192.168.1.10:5432/postgres?sslmode=disable" --verbose down
+	migrate -path db/migration -database $(postgres) --verbose down
 
 sqlc:
 	sqlc generate
