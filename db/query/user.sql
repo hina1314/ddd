@@ -4,6 +4,9 @@ SELECT * FROM "user" WHERE id = $1;
 -- name: GetUserByUsername :one
 SELECT * FROM "user" WHERE username = $1;
 
+-- name: GetUserByPhone :one
+SELECT * FROM "user" WHERE phone = $1;
+
 -- name: GetUserByEmail :one
 SELECT * FROM "user" WHERE email = $1;
 

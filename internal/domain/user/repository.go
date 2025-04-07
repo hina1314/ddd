@@ -9,6 +9,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*User, error)
 	GetByUsername(ctx context.Context, username string) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	GetByPhone(ctx context.Context, phone string) (*User, error)
 	Save(ctx context.Context, user *User) error
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id int64) error

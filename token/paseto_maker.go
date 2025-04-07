@@ -30,7 +30,7 @@ func NewPasetoMaker(symmetricKey string) (Maker, error) {
 func (maker *PasetoMaker) CreateToken(userId uint64, duration time.Duration) (string, error) {
 	payload, err := NewPayload(userId, duration)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return maker.paseto.Encrypt(maker.symmetricKey, payload, nil)

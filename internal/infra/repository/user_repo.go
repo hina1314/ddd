@@ -62,6 +62,17 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 	return r.toDomain(u) // 统一转换
 }
 
+func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
+	u, err := r.getQuerier(ctx).GetUserByUsername(ctx, phone)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, err // 用户不存在
+		}
+		return nil, err
+	}
+	return r.toDomain(u) // 统一转换
+}
+
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.User, error) {
 	u, err := r.getQuerier(ctx).GetUserByID(ctx, id)
 	if err != nil {
@@ -77,7 +88,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*use
 	u, err := r.getQuerier(ctx).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, err
 		}
 		return nil, err
 	}

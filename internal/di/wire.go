@@ -12,6 +12,7 @@ import (
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
+	"study/token"
 	"study/util"
 )
 
@@ -23,6 +24,7 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	wire.Build(
 		// 基础设施层
 		NewDB,
+		NewTokenMaker,
 		repository.NewUserRepository,
 		repository.NewUserAccountRepository,
 
@@ -47,4 +49,8 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 		return nil, err
 	}
 	return model.NewStore(db), nil
+}
+
+func NewTokenMaker(cfg util.Config) (token.Maker, error) {
+	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
 }

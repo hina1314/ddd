@@ -13,6 +13,7 @@ import (
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
+	"study/token"
 	"study/util"
 )
 
@@ -30,7 +31,11 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	userRepository := repository.NewUserRepository(txManager)
 	userAccountRepository := repository.NewUserAccountRepository(txManager)
 	domainService := user.NewDomainService(userRepository, userAccountRepository)
-	userService := app.NewUserService(domainService, txManager)
+	maker, err := NewTokenMaker(cfg)
+	if err != nil {
+		return nil, err
+	}
+	userService := app.NewUserService(domainService, txManager, maker)
 	userHandler := handler.NewUserHandler(userService)
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
@@ -50,4 +55,8 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 		return nil, err
 	}
 	return model.NewStore(db), nil
+}
+
+func NewTokenMaker(cfg util.Config) (token.Maker, error) {
+	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
 }
