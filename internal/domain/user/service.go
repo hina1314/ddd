@@ -43,7 +43,7 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 保存用户
 	if err := s.userRepo.Save(ctx, user); err != nil {
 		return nil, err
@@ -63,42 +63,28 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 }
 
 // AuthenticateUser 用户登录认证
-func (s *DomainService) AuthenticateUser(ctx context.Context, usernameOrEmail, password string) (*User, error) {
+func (s *DomainService) AuthenticateUser(ctx context.Context, phoneOrEmail, password string) (*User, error) {
 	// 查找用户
 	var user *User
 	var err error
 
-	// 尝试通过用户名查找
-	user, err = s.userRepo.GetByUsername(ctx, usernameOrEmail)
+	user, err = s.userRepo.GetByPhone(ctx, phoneOrEmail)
 	if err != nil || user == nil {
 		// 尝试通过邮箱查找
-		emailObj, err := NewEmail(usernameOrEmail)
+		emailObj, err := NewEmail(phoneOrEmail)
 		if err == nil {
 			user, err = s.userRepo.GetByEmail(ctx, emailObj.String())
 		}
 	}
 
-	if err != nil || user == nil {
-		return nil, errors.New("invalid credentials")
+	if user == nil || err != nil {
+		return nil, err
 	}
 
-	//// 获取用户账户
-	//account, err := s.userRepo.GetByUserID(ctx, user.ID)
-	//if err != nil {
-	//	return nil, errors.New("user account not found")
-	//}
-	//
-	//// 验证密码
-	//if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(password)); err != nil {
-	//	return nil, errors.New("invalid credentials")
-	//}
-	//
-	//// 记录登录
-	//account.RecordLogin()
-	//if err := s.userAccountRepo.Update(ctx, account); err != nil {
-	//	// 仅记录错误，不影响认证流程
-	//	// logger.Error("Failed to update login record", err)
-	//}
+	err = util.CheckPassword(password, user.Password)
+	if err != nil {
+		return nil, err
+	}
 
 	return user, nil
 }
