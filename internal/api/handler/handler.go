@@ -1,26 +1,67 @@
 package handler
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v3"
+	"net/http"
+	er "study/util/errors"
 )
 
 // BaseHandler 基础处理器，定义通用方法
-type BaseHandler struct{}
-
-func NewBaseHandler() *BaseHandler {
-	return &BaseHandler{}
+type BaseHandler struct {
+	*er.ErrorHandler
 }
 
-// ErrorResponse 统一错误响应
-func (h *BaseHandler) ErrorResponse(c fiber.Ctx, err error) error {
-	switch err.Error() {
-	case "unique_violation":
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "手机号或用户名已存在"})
-	case "invalid_phone":
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "手机号格式不正确"})
-	default:
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+func NewBaseHandler(errHandler *er.ErrorHandler) *BaseHandler {
+	return &BaseHandler{
+		errHandler,
 	}
+}
+
+func (h *BaseHandler) handleError(ctx fiber.Ctx, err error) error {
+	var statusCode int
+	var domainErr *er.DomainError
+
+	// 判断是否为自定义领域错误
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case er.ErrUserAlreadyExists:
+			statusCode = http.StatusConflict
+		case er.ErrInvalidInput:
+			statusCode = http.StatusBadRequest
+		case er.ErrTxError, er.ErrDatabaseError:
+			statusCode = http.StatusInternalServerError
+		default:
+			statusCode = http.StatusInternalServerError
+		}
+	} else {
+		// 非预期错误，统一返回 500
+		statusCode = http.StatusInternalServerError
+	}
+
+	// 获取本地化信息和调试追踪
+	message, debugTrace := h.Handle(ctx.Context(), err)
+
+	// 构建错误响应
+	errorBody := map[string]interface{}{
+		"message": message,
+	}
+
+	if domainErr != nil {
+		errorBody["code"] = domainErr.Code
+	} else {
+		errorBody["code"] = "INTERNAL_ERROR"
+	}
+
+	// 添加调试信息（仅调试模式）
+	response := map[string]interface{}{
+		"error": errorBody,
+	}
+	if debugTrace != nil {
+		response["debug"] = debugTrace
+	}
+
+	return ctx.Status(statusCode).JSON(response)
 }
 
 // 自定义手机号验证器

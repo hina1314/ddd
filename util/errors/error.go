@@ -1,5 +1,9 @@
 package errors
 
+import (
+	"fmt"
+)
+
 // ErrorCode 表示特定类型的错误代码
 type ErrorCode string
 
@@ -13,6 +17,11 @@ type DomainError struct {
 
 func (e *DomainError) Error() string {
 	return e.Message
+}
+
+// TranslationKey 获取此错误的翻译键
+func (e *DomainError) TranslationKey() string {
+	return fmt.Sprintf("errors.%s", e.Code)
 }
 
 // WithParams 添加参数到错误

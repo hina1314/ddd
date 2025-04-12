@@ -1,0 +1,13 @@
+errors.USER_NOT_FOUND: "User not found: {id}"
+errors.USER_ALREADY_EXISTS: "User with email {email} already exists"
+errors.INVALID_EMAIL: "Invalid email format"
+errors.WEAK_PASSWORD: "Password too weak, it should have at least {minLength} characters"
+errors.ORDER_NOT_FOUND: "Order #{orderID} not found"
+errors.INSUFFICIENT_STOCK: "Insufficient stock for product {productName}, only {available} available"
+errors.PAYMENT_FAILED: "Payment failed: {reason}"
+errors.DATABASE_ERROR: "Database operation failed"
+errors.INTERNAL_ERROR: "Internal server error"
+
+common.welcome: "Welcome to our application, {name}!"
+common.goodbye: "Goodbye, {name}. Have a nice day!"
+common.success: "Operation completed successfully"

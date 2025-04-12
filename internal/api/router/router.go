@@ -22,5 +22,5 @@ func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
 func setupUserRoutes(group fiber.Router, h *handler.UserHandler) {
 	users := group.Group("/user")
 	users.Post("/signup", h.CreateUser) // 创建用户
-	users.Post("/login", h.Login)       // 登录
+	//users.Post("/login", h.Login)       // 登录
 }

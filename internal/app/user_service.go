@@ -2,12 +2,11 @@ package app
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"study/db/model"
 	"study/internal/api/handler/dto"
 	"study/internal/domain/user"
 	"study/token"
+	"study/util/errors"
 	"time"
 )
 
@@ -26,7 +25,8 @@ func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, pass
 	// 开始事务
 	tx, err := s.txManager.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("start transaction: %w", err)
+		//return nil, fmt.Errorf("start transaction: %w", err)
+		return nil, errors.Wrap(err, errors.ErrInternalError, "Error txManager.Begin")
 	}
 
 	// 确保事务结束时回滚（如果未提交）
@@ -39,15 +39,12 @@ func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, pass
 	ctx = context.WithValue(ctx, model.TxKey{}, tx)
 	record, err := s.domainService.RegisterUser(ctx, name, phone, email, password)
 	if err != nil {
-		if err.Error() == "duplicate_user" {
-			return nil, errors.New("unique_violation")
-		}
 		return nil, err
 	}
 
 	// 提交事务
 	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit transaction: %w", err)
+		return nil, errors.Wrap(err, errors.ErrInternalError, "Error txManager.Commit")
 	}
 	return &dto.UserResponse{
 		Phone:       record.Phone,
@@ -63,7 +60,7 @@ func (s *UserService) LoginUser(ctx context.Context, phoneOrEmail, password stri
 	if err != nil {
 		return nil, err
 	}
-	
+
 	accessToken, err := s.token.CreateToken(uint64(record.ID), 3600)
 	if err != nil {
 		return nil, err

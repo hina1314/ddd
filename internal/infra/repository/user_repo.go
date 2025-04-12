@@ -6,6 +6,7 @@ import (
 	"errors"
 	"study/db/model"
 	"study/internal/domain/user"
+	er "study/util/errors"
 	"time"
 )
 
@@ -55,7 +56,7 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 	u, err := r.getQuerier(ctx).GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // 用户不存在
+			return nil, er.New(er.ErrUserNotFound, "User not found")
 		}
 		return nil, err
 	}
@@ -63,10 +64,10 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 }
 
 func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
-	u, err := r.getQuerier(ctx).GetUserByUsername(ctx, phone)
+	u, err := r.getQuerier(ctx).GetUserByPhone(ctx, phone)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err // 用户不存在
+			return nil, er.New(er.ErrUserNotFound, "User not found")
 		}
 		return nil, err
 	}
@@ -77,7 +78,7 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.User,
 	u, err := r.getQuerier(ctx).GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, er.New(er.ErrUserNotFound, "User not found")
 		}
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*use
 	u, err := r.getQuerier(ctx).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return nil, er.New(er.ErrUserNotFound, "User not found")
 		}
 		return nil, err
 	}
@@ -105,6 +106,9 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
 
 	result, err := r.getQuerier(ctx).CreateUser(ctx, arg)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return er.New(er.ErrUserAlreadyExists, "User already exists")
+		}
 		return err
 	}
 	u.ID = result.ID

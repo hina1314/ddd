@@ -6,6 +6,7 @@ import (
 	"study/internal/api/router"
 	"study/internal/di"
 	"study/util"
+	"study/util/i18n"
 )
 
 func main() {
@@ -13,6 +14,15 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot load config files")
 	}
+
+	translator := i18n.NewFileTranslator("en")
+	// 加载翻译文件
+	if err = translator.LoadTranslations("./config/i18n"); err != nil {
+		log.Fatal(err)
+	}
+
+	// 初始化全局翻译服务
+	i18n.InitTranslator(translator, "zh")
 
 	deps, err := di.InitializeDependencies(config)
 	if err != nil {

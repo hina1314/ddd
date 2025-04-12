@@ -2,8 +2,8 @@ package user
 
 import (
 	"context"
-	"errors"
 	"study/util"
+	"study/util/errors"
 )
 
 // DomainService 用户领域服务
@@ -25,13 +25,19 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 	// 检查用户名唯一性
 	existingUser, _ := s.userRepo.GetByUsername(ctx, username)
 	if existingUser != nil {
-		return nil, errors.New("username already exists")
+		return nil, errors.New(errors.ErrUserAlreadyExists, "username already exists")
+	}
+
+	// 检查用户名唯一性
+	existingPhone, _ := s.userRepo.GetByPhone(ctx, phone)
+	if existingPhone != nil {
+		return nil, errors.New(errors.ErrUserAlreadyExists, "phone already exists")
 	}
 
 	// 检查邮箱唯一性
 	existingEmail, _ := s.userRepo.GetByEmail(ctx, email)
 	if existingEmail != nil {
-		return nil, errors.New("email already exists")
+		return nil, errors.New(errors.ErrUserAlreadyExists, "email already exists")
 	}
 
 	passwordHash, err := util.HashPassword(password)

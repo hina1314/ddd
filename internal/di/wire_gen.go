@@ -15,6 +15,7 @@ import (
 	"study/internal/infra/repository"
 	"study/token"
 	"study/util"
+	"study/util/errors"
 )
 
 import (
@@ -36,7 +37,8 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 		return nil, err
 	}
 	userService := app.NewUserService(domainService, txManager, maker)
-	userHandler := handler.NewUserHandler(userService)
+	errorHandler := NewErrorHandler()
+	userHandler := handler.NewUserHandler(userService, errorHandler)
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
 	}
@@ -59,4 +61,8 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 
 func NewTokenMaker(cfg util.Config) (token.Maker, error) {
 	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
+}
+
+func NewErrorHandler() *errors.ErrorHandler {
+	return errors.NewErrorHandler(true)
 }

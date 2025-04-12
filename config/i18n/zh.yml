@@ -1,0 +1,13 @@
+errors.USER_NOT_FOUND: "未找到用户!"
+errors.USER_ALREADY_EXISTS: "用户已存在!"
+errors.INVALID_EMAIL: "无效的邮箱格式"
+errors.WEAK_PASSWORD: "密码太弱，应至少包含 {minLength} 个字符"
+errors.ORDER_NOT_FOUND: "订单 #{orderID} 未找到"
+errors.INSUFFICIENT_STOCK: "产品 {productName} 库存不足，仅剩 {available} 件"
+errors.PAYMENT_FAILED: "支付失败：{reason}"
+errors.DATABASE_ERROR: "数据库操作失败"
+errors.INTERNAL_ERROR: "内部服务器错误"
+
+common.welcome: "欢迎使用我们的应用，{name}！"
+common.goodbye: "再见，{name}。祝您有美好的一天！"
+common.success: "操作已成功完成"

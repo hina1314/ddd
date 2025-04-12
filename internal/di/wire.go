@@ -14,6 +14,7 @@ import (
 	"study/internal/infra/repository"
 	"study/token"
 	"study/util"
+	"study/util/errors"
 )
 
 type Dependencies struct {
@@ -25,6 +26,8 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 		// 基础设施层
 		NewDB,
 		NewTokenMaker,
+		NewErrorHandler,
+
 		repository.NewUserRepository,
 		repository.NewUserAccountRepository,
 
@@ -53,4 +56,8 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 
 func NewTokenMaker(cfg util.Config) (token.Maker, error) {
 	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
+}
+
+func NewErrorHandler() *errors.ErrorHandler {
+	return errors.NewErrorHandler(true)
 }
