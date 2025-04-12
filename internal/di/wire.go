@@ -5,31 +5,55 @@ package di
 
 import (
 	"database/sql"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/wire"
 	_ "github.com/lib/pq"
-	"log"
+	"study/config"
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
 	"study/token"
-	"study/util"
 	"study/util/errors"
 	"study/util/i18n"
 )
 
+// Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
 	UserHandler *handler.UserHandler
+	Config      config.Config // 使用值类型
+	server      *fiber.App    // 非导出字段
 }
 
-func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
+// NewServer 返回 Fiber 服务器实例。
+func (d *Dependencies) NewServer() *fiber.App {
+	if d.server == nil {
+		d.server = fiber.New()
+	}
+	return d.server
+}
+
+// NewDependencies 初始化所有依赖。
+func NewDependencies(cfg config.Config) (*Dependencies, error) {
+	deps, err := initializeDependencies(cfg)
+	if err != nil {
+		return nil, err
+	}
+	deps.Config = cfg
+	return deps, nil
+}
+
+func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	wire.Build(
 		// 基础设施层
-		NewDB,
-		NewTokenMaker,
-		NewErrorHandler,
-		NewTranslationService,
+		newFiberApp, // 新增提供者
+		newDB,
+		newTokenMaker,
+		newErrorHandler,
+		wire.Bind(new(i18n.Translator), new(*i18n.FileTranslator)),
+		newFileTranslator,
+		newTranslationService,
 		repository.NewUserRepository,
 		repository.NewUserAccountRepository,
 
@@ -43,12 +67,16 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 		handler.NewUserHandler,
 
 		// 返回值
-		wire.Struct(new(Dependencies), "UserHandler"),
+		wire.Struct(new(Dependencies), "*"),
 	)
-	return &Dependencies{}, nil
+	return nil, nil
 }
 
-func NewDB(cfg util.Config) (model.TxManager, error) {
+func newFiberApp() *fiber.App {
+	return fiber.New()
+}
+
+func newDB(cfg config.Config) (model.TxManager, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err
@@ -56,19 +84,21 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 	return model.NewStore(db), nil
 }
 
-func NewTokenMaker(cfg util.Config) (token.Maker, error) {
+func newTokenMaker(cfg config.Config) (token.Maker, error) {
 	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
 }
 
-func NewErrorHandler() *errors.ErrorHandler {
-	return errors.NewErrorHandler(true, true)
+func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
+	return errors.NewErrorHandler(cfg.Debug, false)
 }
 
-func NewTranslationService() *i18n.TranslationService {
-	translator := i18n.NewFileTranslator("en")
-	// 加载翻译文件
+func newFileTranslator() *i18n.FileTranslator {
+	return i18n.NewFileTranslator("en")
+}
+
+func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n.TranslationService, error) {
 	if err := translator.LoadTranslations("./config/i18n"); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return i18n.NewTranslationService(translator, "zh")
+	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
 }

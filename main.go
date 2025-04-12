@@ -1,29 +1,34 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v3"
 	"log"
+	"study/config"
 	"study/internal/api/router"
 	"study/internal/di"
-	"study/util"
 )
 
+// main 是应用程序的入口点。
 func main() {
-	config, err := util.LoadConfig(".")
+	// 加载配置
+	cfg, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatal("cannot load config files")
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	deps, err := di.InitializeDependencies(config)
+	// 初始化依赖
+	deps, err := di.NewDependencies(cfg)
 	if err != nil {
-		log.Fatal("cannot initialize dependencies:", err)
+		log.Fatalf("Failed to initialize dependencies: %v", err)
 	}
 
-	server := fiber.New()
-	router.SetupRouter(server, deps.UserHandler)
+	// 创建 Fiber 服务器
+	server := deps.NewServer()
 
-	err = server.Listen(config.ServerAddress)
-	if err != nil {
-		log.Fatal("cannot start server")
+	// 设置路由
+	router.Setup(server, deps)
+
+	// 启动服务器
+	if err := server.Listen(cfg.ServerAddress); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }

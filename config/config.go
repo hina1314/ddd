@@ -1,4 +1,4 @@
-package util
+package config
 
 import (
 	"github.com/spf13/viper"
@@ -13,6 +13,8 @@ type Config struct {
 	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	DefaultLocale       string        `mapstructure:"DEFAULT_LOCALE"`
+	Debug               bool          `mapstructure:"DEBUG"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

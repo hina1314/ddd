@@ -8,14 +8,14 @@ package di
 
 import (
 	"database/sql"
-	"log"
+	"github.com/gofiber/fiber/v3"
+	"study/config"
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
 	"study/token"
-	"study/util"
 	"study/util/errors"
 	"study/util/i18n"
 )
@@ -26,35 +26,67 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
-	txManager, err := NewDB(cfg)
+func initializeDependencies(cfg config.Config) (*Dependencies, error) {
+	txManager, err := newDB(cfg)
 	if err != nil {
 		return nil, err
 	}
 	userRepository := repository.NewUserRepository(txManager)
 	userAccountRepository := repository.NewUserAccountRepository(txManager)
 	domainService := user.NewDomainService(userRepository, userAccountRepository)
-	maker, err := NewTokenMaker(cfg)
+	maker, err := newTokenMaker(cfg)
 	if err != nil {
 		return nil, err
 	}
 	userService := app.NewUserService(domainService, txManager, maker)
-	errorHandler := NewErrorHandler()
-	translationService := NewTranslationService()
+	errorHandler := newErrorHandler(cfg)
+	fileTranslator := newFileTranslator()
+	translationService, err := newTranslationService(fileTranslator, cfg)
+	if err != nil {
+		return nil, err
+	}
 	userHandler := handler.NewUserHandler(userService, errorHandler, translationService)
+	fiberApp := newFiberApp()
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
+		Config:      cfg,
+		server:      fiberApp,
 	}
 	return dependencies, nil
 }
 
 // wire.go:
 
+// Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
 	UserHandler *handler.UserHandler
+	Config      config.Config // 使用值类型
+	server      *fiber.App    // 非导出字段
 }
 
-func NewDB(cfg util.Config) (model.TxManager, error) {
+// NewServer 返回 Fiber 服务器实例。
+func (d *Dependencies) NewServer() *fiber.App {
+	if d.server == nil {
+		d.server = fiber.New()
+	}
+	return d.server
+}
+
+// NewDependencies 初始化所有依赖。
+func NewDependencies(cfg config.Config) (*Dependencies, error) {
+	deps, err := initializeDependencies(cfg)
+	if err != nil {
+		return nil, err
+	}
+	deps.Config = cfg
+	return deps, nil
+}
+
+func newFiberApp() *fiber.App {
+	return fiber.New()
+}
+
+func newDB(cfg config.Config) (model.TxManager, error) {
 	db, err := sql.Open("postgres", cfg.DBSource)
 	if err != nil {
 		return nil, err
@@ -62,19 +94,21 @@ func NewDB(cfg util.Config) (model.TxManager, error) {
 	return model.NewStore(db), nil
 }
 
-func NewTokenMaker(cfg util.Config) (token.Maker, error) {
+func newTokenMaker(cfg config.Config) (token.Maker, error) {
 	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
 }
 
-func NewErrorHandler() *errors.ErrorHandler {
-	return errors.NewErrorHandler(true, false)
+func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
+	return errors.NewErrorHandler(cfg.Debug, false)
 }
 
-func NewTranslationService() *i18n.TranslationService {
-	translator := i18n.NewFileTranslator("en")
+func newFileTranslator() *i18n.FileTranslator {
+	return i18n.NewFileTranslator("en")
+}
 
+func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n.TranslationService, error) {
 	if err := translator.LoadTranslations("./config/i18n"); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return i18n.NewTranslationService(translator, "zh")
+	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
 }
