@@ -8,8 +8,9 @@ import (
 
 // SetupRouter 配置所有路由
 func SetupRouter(app *fiber.App, userHandler *handler.UserHandler) {
-	// 全局中间件（如日志）
+	// 全局中间件
 	app.Use(middleware.Logger())
+	app.Use(middleware.Locale("zh"))
 
 	// API 版本分组
 	v1 := app.Group("/v1")
