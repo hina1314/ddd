@@ -1,21 +1,31 @@
 package handler
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+	"study/util/errors"
+)
 
-type errorResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"msg"`
+// SuccessResponse 定义成功响应的结构。
+type SuccessResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
 }
 
-//type successResponse struct {
-//	Code    string
-//	Message string
-//	Data    interface{}
-//}
+func (h *BaseHandler) successResponse(c fiber.Ctx, msg string, data interface{}) error {
+	message := h.TranslationService.T(c.Context(), msg, nil)
+	response := SuccessResponse{
+		Code: fiber.StatusOK,
+		Msg:  message,
+		Data: data,
+	}
+	return c.Status(fiber.StatusOK).JSON(response)
+}
 
-//	func errorResponse(err error) fiber.Map {
-//		return fiber.Map{"error": err.Error()}
-//	}
-func successResponse(c fiber.Ctx, msg string, data interface{}) error {
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"code": fiber.StatusOK, "msg": msg, "data": data})
+type errorResponse struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+	Debug *errors.ErrorTrace `json:"debug,omitempty"`
 }

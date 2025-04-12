@@ -6,6 +6,7 @@ import (
 	"study/internal/api/handler/dto"
 	"study/internal/app"
 	"study/util/errors"
+	"study/util/i18n"
 )
 
 type UserHandler struct {
@@ -13,9 +14,9 @@ type UserHandler struct {
 	userService *app.UserService
 }
 
-func NewUserHandler(userService *app.UserService, errHandler *errors.ErrorHandler) *UserHandler {
+func NewUserHandler(userService *app.UserService, errHandler *errors.ErrorHandler, translationService *i18n.TranslationService) *UserHandler {
 	return &UserHandler{
-		base:        NewBaseHandler(errHandler),
+		base:        NewBaseHandler(errHandler, translationService),
 		userService: userService,
 	}
 }
@@ -26,8 +27,6 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 		return h.base.handleError(c, err)
 	}
 
-	// 使用 validator 库验证（需引入 "github.com/go-playground/validator/v10"）
-	// 这里假设添加了 phone 自定义验证规则
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
 		return h.base.handleError(c, err)
@@ -38,7 +37,7 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 		return h.base.handleError(c, err)
 	}
 
-	return successResponse(c, "ok", newUser)
+	return h.base.successResponse(c, "user.created", newUser)
 }
 
 //func (h *UserHandler) Login(c fiber.Ctx) error {

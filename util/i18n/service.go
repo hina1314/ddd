@@ -2,55 +2,53 @@ package i18n
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
-// TranslationService 提供翻译服务
+// TranslationService provides a high-level interface for translation operations.
 type TranslationService struct {
 	translator    Translator
 	defaultLocale string
+	cache         *sync.Map // Optional cache for translated messages
 	mu            sync.RWMutex
 }
 
-// NewTranslationService 创建一个新的翻译服务
+// NewTranslationService creates a new TranslationService with the given translator and default locale.
 func NewTranslationService(translator Translator, defaultLocale string) *TranslationService {
 	return &TranslationService{
 		translator:    translator,
 		defaultLocale: defaultLocale,
+		cache:         &sync.Map{},
 	}
 }
 
-// T 翻译一个键，使用上下文中的语言环境
+// T translates a key using the locale from the context, applying parameters if provided.
 func (s *TranslationService) T(ctx context.Context, key string, params map[string]interface{}) string {
 	locale := LocaleFromContext(ctx, s.defaultLocale)
-	return s.translator.T(key, locale, params)
+
+	// Check cache
+	cacheKey := fmt.Sprintf("%s:%s:%v", locale, key, params)
+	if cached, ok := s.cache.Load(cacheKey); ok {
+		return cached.(string)
+	}
+
+	// Translate
+	translated := s.translator.T(key, locale, params)
+
+	// Store in cache
+	s.cache.Store(cacheKey, translated)
+	return translated
 }
 
-// SetDefaultLocale 设置默认语言环境
+// SetDefaultLocale sets the default locale for translations.
 func (s *TranslationService) SetDefaultLocale(locale string) {
 	s.mu.Lock()
 	s.defaultLocale = locale
 	s.mu.Unlock()
 }
 
-// 全局翻译函数，类似ThinkPHP的lang()
-var defaultService *TranslationService
-
-// InitTranslator 初始化全局翻译器
-func InitTranslator(translator Translator, defaultLocale string) {
-	defaultService = NewTranslationService(translator, defaultLocale)
-}
-
-// T 全局翻译函数，类似ThinkPHP的lang()
-func T(ctx context.Context, key string, params ...map[string]interface{}) string {
-	if defaultService == nil {
-		return key
-	}
-
-	var p map[string]interface{}
-	if len(params) > 0 {
-		p = params[0]
-	}
-
-	return defaultService.T(ctx, key, p)
+// LoadTranslations loads translation files using the underlying translator.
+func (s *TranslationService) LoadTranslations(dir string) error {
+	return s.translator.LoadTranslations(dir)
 }

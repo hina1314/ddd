@@ -8,6 +8,7 @@ package di
 
 import (
 	"database/sql"
+	"log"
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
@@ -16,6 +17,7 @@ import (
 	"study/token"
 	"study/util"
 	"study/util/errors"
+	"study/util/i18n"
 )
 
 import (
@@ -38,7 +40,8 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 	}
 	userService := app.NewUserService(domainService, txManager, maker)
 	errorHandler := NewErrorHandler()
-	userHandler := handler.NewUserHandler(userService, errorHandler)
+	translationService := NewTranslationService()
+	userHandler := handler.NewUserHandler(userService, errorHandler, translationService)
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
 	}
@@ -64,5 +67,14 @@ func NewTokenMaker(cfg util.Config) (token.Maker, error) {
 }
 
 func NewErrorHandler() *errors.ErrorHandler {
-	return errors.NewErrorHandler(true)
+	return errors.NewErrorHandler(true, false)
+}
+
+func NewTranslationService() *i18n.TranslationService {
+	translator := i18n.NewFileTranslator("en")
+
+	if err := translator.LoadTranslations("./config/i18n"); err != nil {
+		log.Fatal(err)
+	}
+	return i18n.NewTranslationService(translator, "zh")
 }

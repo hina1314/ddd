@@ -8,6 +8,8 @@ errors.PAYMENT_FAILED: "支付失败：{reason}"
 errors.DATABASE_ERROR: "数据库操作失败"
 errors.INTERNAL_ERROR: "内部服务器错误"
 
+user.created: "用户创建成功！"
+
 common.welcome: "欢迎使用我们的应用，{name}！"
 common.goodbye: "再见，{name}。祝您有美好的一天！"
 common.success: "操作已成功完成"

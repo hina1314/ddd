@@ -1,59 +1,52 @@
 package errors
 
-import (
-	"context"
-	"study/util/i18n"
-)
-
-// ErrorHandler 负责处理和转换领域错误
+// ErrorHandler processes errors for debug tracing.
 type ErrorHandler struct {
 	debugMode bool
+	fullStack bool // Toggle full stack trace
 }
 
-// NewErrorHandler 创建一个新的错误处理器
-func NewErrorHandler(debugMode bool) *ErrorHandler {
+// NewErrorHandler creates a new ErrorHandler.
+func NewErrorHandler(debugMode, fullStack bool) *ErrorHandler {
 	return &ErrorHandler{
 		debugMode: debugMode,
+		fullStack: fullStack,
 	}
 }
 
-// SetDebugMode 设置调试模式
+// SetDebugMode sets the debug mode.
 func (h *ErrorHandler) SetDebugMode(debug bool) {
 	h.debugMode = debug
 }
 
-// Handle 处理领域错误，包括翻译
-func (h *ErrorHandler) Handle(ctx context.Context, err error) (string, *ErrorTrace) {
-	if err == nil {
-		return "", nil
+// GetErrorTrace creates an ErrorTrace from an error, using the stored stack trace.
+func (h *ErrorHandler) GetErrorTrace(err error) *ErrorTrace {
+	if !h.debugMode || err == nil {
+		return nil
 	}
 
-	// 提取领域错误
-	var domainErr *DomainError
+	var trace *ErrorTrace
 	if de, ok := err.(*DomainError); ok {
-		domainErr = de
+		location := ""
+		if de.Stack != nil {
+			location = de.Stack.String(h.fullStack)
+		}
+
+		trace = &ErrorTrace{
+			Message:  de.Message,
+			Code:     de.Code,
+			Location: location,
+			Params:   de.Params,
+		}
+
+		if de.Cause != nil {
+			trace.Cause = h.GetErrorTrace(de.Cause)
+		}
 	} else {
-		// 包装为通用错误
-		domainErr = &DomainError{
-			Code:    "INTERNAL_ERROR",
+		trace = &ErrorTrace{
 			Message: err.Error(),
 		}
 	}
 
-	// 获取错误追踪（仅在调试模式下）
-	var trace *ErrorTrace
-	if h.debugMode {
-		trace = GetErrorTrace(err)
-	}
-
-	// 翻译错误消息
-	translationKey := domainErr.TranslationKey()
-	message := i18n.T(ctx, translationKey, domainErr.Params)
-
-	// 如果翻译失败（返回键本身），使用默认消息
-	if message == translationKey {
-		message = domainErr.Message
-	}
-
-	return message, trace
+	return trace
 }

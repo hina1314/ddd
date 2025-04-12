@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"github.com/google/wire"
 	_ "github.com/lib/pq"
+	"log"
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/app"
@@ -15,6 +16,7 @@ import (
 	"study/token"
 	"study/util"
 	"study/util/errors"
+	"study/util/i18n"
 )
 
 type Dependencies struct {
@@ -27,7 +29,7 @@ func InitializeDependencies(cfg util.Config) (*Dependencies, error) {
 		NewDB,
 		NewTokenMaker,
 		NewErrorHandler,
-
+		NewTranslationService,
 		repository.NewUserRepository,
 		repository.NewUserAccountRepository,
 
@@ -59,5 +61,14 @@ func NewTokenMaker(cfg util.Config) (token.Maker, error) {
 }
 
 func NewErrorHandler() *errors.ErrorHandler {
-	return errors.NewErrorHandler(true)
+	return errors.NewErrorHandler(true, true)
+}
+
+func NewTranslationService() *i18n.TranslationService {
+	translator := i18n.NewFileTranslator("en")
+	// 加载翻译文件
+	if err := translator.LoadTranslations("./config/i18n"); err != nil {
+		log.Fatal(err)
+	}
+	return i18n.NewTranslationService(translator, "zh")
 }
