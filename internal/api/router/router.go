@@ -10,6 +10,7 @@ import (
 // Setup 配置应用程序的所有路由。
 func Setup(app *fiber.App, deps *di.Dependencies) {
 	// 全局中间件
+	app.Use(middleware.Cors(deps.Config.AllowedOrigins))
 	app.Use(middleware.Logger())
 	app.Use(middleware.Locale(deps.Config.DefaultLocale)) // 使用配置文件中的语言偏好
 

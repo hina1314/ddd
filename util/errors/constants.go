@@ -3,7 +3,7 @@ package errors
 // common
 const (
 	ErrInvalidInput  ErrorCode = "Invalid_Input"
-	ErrInternalError ErrorCode = "Internal_Error"
+	ErrInternalError ErrorCode = "INTERNAL_ERROR"
 	ErrTxError       ErrorCode = "Transaction_Failure"
 	ErrDatabaseError ErrorCode = "Database_Error"
 )

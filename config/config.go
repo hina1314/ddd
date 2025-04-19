@@ -11,6 +11,7 @@ type Config struct {
 	DBDriver            string        `mapstructure:"DB_DRIVER"`
 	DBSource            string        `mapstructure:"DB_SOURCE"`
 	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
+	AllowedOrigins      []string      `mapstructure:"ALLOWED_ORIGINS"`
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	DefaultLocale       string        `mapstructure:"DEFAULT_LOCALE"`
