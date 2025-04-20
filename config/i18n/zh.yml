@@ -1,15 +1,29 @@
+# common errors
+errors.INTERNAL_ERROR: "内部服务器错误"
+errors.REQUIRED: "{field}为必填项！"
+errors.INVALID_INPUT: "参数无效！"
+
+# user errors
 errors.USER_NOT_FOUND: "未找到用户!"
 errors.USER_ALREADY_EXISTS: "用户已存在!"
-errors.INVALID_EMAIL: "无效的邮箱格式"
-errors.WEAK_PASSWORD: "密码太弱，应至少包含 {minLength} 个字符"
+errors.USER_PHONE: "手机号格式不正确！"
+errors.USER_EMAIL: "邮箱格式不正确！"
+errors.USER_MIN_LENGTH: "{field}的长度最少为{min}位！"
+errors.USER_ALPHA_NUM_UNICODE: "{field}不是合法的名称！"
+
+# order errors
 errors.ORDER_NOT_FOUND: "订单 #{orderID} 未找到"
 errors.INSUFFICIENT_STOCK: "产品 {productName} 库存不足，仅剩 {available} 件"
-errors.PAYMENT_FAILED: "支付失败：{reason}"
-errors.DATABASE_ERROR: "数据库操作失败"
-errors.INTERNAL_ERROR: "内部服务器错误"
 
-user.created: "用户创建成功！"
 
+# common message
 common.welcome: "欢迎使用我们的应用，{name}！"
 common.goodbye: "再见，{name}。祝您有美好的一天！"
 common.success: "操作已成功完成"
+
+# user message
+user.created: "用户创建成功！"
+
+
+
+

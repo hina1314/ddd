@@ -5,6 +5,7 @@ package di
 
 import (
 	"database/sql"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/wire"
 	_ "github.com/lib/pq"
@@ -51,6 +52,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		newDB,
 		newTokenMaker,
 		newErrorHandler,
+		newValidator,
 		wire.Bind(new(i18n.Translator), new(*i18n.FileTranslator)),
 		newFileTranslator,
 		newTranslationService,
@@ -64,6 +66,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		app.NewUserService,
 
 		// 表现层
+		handler.NewBaseHandler,
 		handler.NewUserHandler,
 
 		// 返回值
@@ -101,4 +104,12 @@ func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n
 		return nil, err
 	}
 	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
+}
+func newValidator() *validator.Validate {
+	v := validator.New()
+	// 注册自定义 tag "phone"
+	if err := v.RegisterValidation("phone", errors.PhoneValidator); err != nil {
+		panic(err)
+	}
+	return v
 }

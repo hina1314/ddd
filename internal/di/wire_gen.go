@@ -8,6 +8,7 @@ package di
 
 import (
 	"database/sql"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/config"
 	"study/db/model"
@@ -45,7 +46,9 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userHandler := handler.NewUserHandler(userService, errorHandler, translationService)
+	baseHandler := handler.NewBaseHandler(errorHandler, translationService)
+	validate := newValidator()
+	userHandler := handler.NewUserHandler(userService, baseHandler, validate)
 	fiberApp := newFiberApp()
 	dependencies := &Dependencies{
 		UserHandler: userHandler,
@@ -111,4 +114,13 @@ func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n
 		return nil, err
 	}
 	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
+}
+
+func newValidator() *validator.Validate {
+	v := validator.New()
+
+	if err := v.RegisterValidation("phone", errors.PhoneValidator); err != nil {
+		panic(err)
+	}
+	return v
 }

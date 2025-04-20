@@ -6,7 +6,7 @@ import (
 )
 
 // SuccessResponse 定义成功响应的结构。
-type SuccessResponse struct {
+type successResponse struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
@@ -14,7 +14,7 @@ type SuccessResponse struct {
 
 func (h *BaseHandler) successResponse(c fiber.Ctx, msg string, data interface{}) error {
 	message := h.TranslationService.T(c.Context(), msg, nil)
-	response := SuccessResponse{
+	response := successResponse{
 		Code: fiber.StatusOK,
 		Msg:  message,
 		Data: data,

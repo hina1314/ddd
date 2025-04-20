@@ -3,7 +3,7 @@ package dto
 import "time"
 
 type CreateUserRequest struct {
-	Phone    string `json:"phone" validate:"required"`
+	Phone    string `json:"phone" validate:"required,phone"`
 	Username string `json:"username" validate:"required,alphanumunicode"`
 	Password string `json:"password" validate:"required,min=6"`
 	Email    string `json:"email" validate:"email"`

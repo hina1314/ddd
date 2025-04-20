@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 	"study/util"
 	"study/util/errors"
 )
@@ -74,16 +75,13 @@ func (s *DomainService) AuthenticateUser(ctx context.Context, phoneOrEmail, pass
 	var user *User
 	var err error
 
-	user, err = s.userRepo.GetByPhone(ctx, phoneOrEmail)
-	if err != nil || user == nil {
-		// 尝试通过邮箱查找
-		emailObj, err := NewEmail(phoneOrEmail)
-		if err == nil {
-			user, err = s.userRepo.GetByEmail(ctx, emailObj.String())
-		}
+	if strings.Contains(phoneOrEmail, "@") {
+		user, err = s.userRepo.GetByEmail(ctx, phoneOrEmail)
+	} else {
+		user, err = s.userRepo.GetByPhone(ctx, phoneOrEmail)
 	}
 
-	if user == nil || err != nil {
+	if err != nil {
 		return nil, err
 	}
 

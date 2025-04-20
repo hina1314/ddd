@@ -5,30 +5,32 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
 	"study/internal/app"
-	"study/util/errors"
-	"study/util/i18n"
 )
 
+// UserHandler 处理用户相关的 HTTP 请求。
 type UserHandler struct {
 	base        *BaseHandler
 	userService *app.UserService
+	validator   *validator.Validate
 }
 
-func NewUserHandler(userService *app.UserService, errHandler *errors.ErrorHandler, translationService *i18n.TranslationService) *UserHandler {
+// NewUserHandler 创建一个新的 UserHandler。
+func NewUserHandler(userService *app.UserService, base *BaseHandler, v *validator.Validate) *UserHandler {
 	return &UserHandler{
-		base:        NewBaseHandler(errHandler, translationService),
+		base:        base,
 		userService: userService,
+		validator:   v,
 	}
 }
 
+// CreateUser 处理用户注册请求。
 func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	var req dto.CreateUserRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return h.base.handleError(c, err)
 	}
 
-	validate := validator.New()
-	if err := validate.Struct(req); err != nil {
+	if err := h.validator.Struct(req); err != nil {
 		return h.base.handleError(c, err)
 	}
 

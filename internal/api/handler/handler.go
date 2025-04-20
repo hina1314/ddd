@@ -2,19 +2,20 @@ package handler
 
 import (
 	stdErr "errors"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"study/util/errors"
 	"study/util/i18n"
 )
 
-// BaseHandler provides common methods for HTTP handlers.
+// BaseHandler 提供 HTTP 处理程序的通用方法。
 type BaseHandler struct {
 	ErrorHandler       *errors.ErrorHandler
 	TranslationService *i18n.TranslationService
 }
 
-// NewBaseHandler creates a new BaseHandler with the given dependencies.
+// NewBaseHandler 创建一个新的 BaseHandler。
 func NewBaseHandler(errHandler *errors.ErrorHandler, translationService *i18n.TranslationService) *BaseHandler {
 	return &BaseHandler{
 		ErrorHandler:       errHandler,
@@ -23,9 +24,16 @@ func NewBaseHandler(errHandler *errors.ErrorHandler, translationService *i18n.Tr
 }
 
 func (h *BaseHandler) handleError(ctx fiber.Ctx, err error) error {
-	var statusCode int
-	var domainErr *errors.DomainError
-	if stdErr.As(err, &domainErr) {
+	var (
+		statusCode     int
+		domainErr      *errors.DomainError
+		validationErrs validator.ValidationErrors
+	)
+
+	if stdErr.As(err, &validationErrs) && len(validationErrs) > 0 {
+		statusCode = http.StatusBadRequest
+		domainErr = errors.ValidationErrorToDomainError(validationErrs[0])
+	} else if stdErr.As(err, &domainErr) {
 		switch domainErr.Code {
 		case errors.ErrUserAlreadyExists:
 			statusCode = http.StatusConflict
@@ -44,17 +52,16 @@ func (h *BaseHandler) handleError(ctx fiber.Ctx, err error) error {
 			Stack:   errors.CaptureStack(2),
 		}
 	}
-	
-	// Perform translation
-	translationKey := domainErr.TranslationKey()
 
+	// 翻译错误
+	translationKey := domainErr.TranslationKey()
 	message := h.TranslationService.T(ctx.Context(), translationKey, domainErr.Params)
 	if message == translationKey {
 		message = domainErr.Message
 	}
 
-	// Get debug trace
-	debugTrace := h.ErrorHandler.GetErrorTrace(err)
+	// 获取调试追踪
+	debugTrace := h.ErrorHandler.GetErrorTrace(domainErr)
 
 	response := errorResponse{
 		Error: struct {
