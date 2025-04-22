@@ -38,7 +38,6 @@ func Auth(res *response.ResponseHandler, tokenMaker token.Maker) fiber.Handler {
 		accessToken := fields[1]
 		payload, err := tokenMaker.VerifyToken(accessToken)
 		if err != nil {
-			fmt.Println(accessToken)
 			err = errors.Wrap(err, errors.ErrUnauthorized, "invalid token")
 			return res.HandleError(ctx, err)
 		}

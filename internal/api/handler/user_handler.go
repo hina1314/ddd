@@ -5,10 +5,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
-	"study/internal/api/middleware"
 	"study/internal/api/response"
 	"study/internal/app"
-	"study/token"
+	"study/util"
 	"study/util/errors"
 )
 
@@ -63,7 +62,6 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(c fiber.Ctx) error {
-	fmt.Println("xxxx")
 	var req dto.LoginUserRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return h.res.HandleError(c, err)
@@ -98,9 +96,8 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 
 func (h *UserHandler) Info(c fiber.Ctx) error {
 
-	payload := c.Locals(middleware.AuthorizationPayloadKey).(*token.Payload)
-	userId := payload.UserId
-	fmt.Println(userId)
+	payload := util.GetAuthPayload(c)
+	fmt.Println(payload.UserId)
 
 	return h.res.SuccessResponse(c, "user.info", payload)
 }
