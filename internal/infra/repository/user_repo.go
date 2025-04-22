@@ -29,10 +29,7 @@ func (r *UserRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
 
 // **通用转换方法：model.User → user.User**
 func (r *UserRepositoryImpl) toDomain(u model.User) (*user.User, error) {
-	emailVO, err := user.NewEmail(u.Email)
-	if err != nil {
-		return nil, err
-	}
+	emailVO := user.NewEmail(u.Email)
 
 	var deletedAt *time.Time
 	if u.DeletedAt.Valid {

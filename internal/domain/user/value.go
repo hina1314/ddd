@@ -51,12 +51,8 @@ type Email struct {
 	value string
 }
 
-func NewEmail(value string) (Email, error) {
-	if value == "" {
-		return Email{}, errors.New("email cannot be empty")
-	}
-	// 可添加更复杂的验证
-	return Email{value: value}, nil
+func NewEmail(value string) Email {
+	return Email{value: value}
 }
 
 func (e Email) String() string {

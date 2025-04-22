@@ -11,12 +11,15 @@ const (
 
 // 用户领域错误代码
 const (
+	ErrUnauthorized      ErrorCode = "USER_UNAUTHORIZED"
 	ErrUserNotFound      ErrorCode = "USER_NOT_FOUND"
 	ErrUserAlreadyExists ErrorCode = "USER_ALREADY_EXISTS"
-	ErrMinLength         ErrorCode = "MIN_LENGTH"
-	ErrPhone             ErrorCode = "USER_PHONE"
-	ErrEmail             ErrorCode = "USER_EMAIL"
-	ErrAlphaNumUnicode   ErrorCode = "ALPHA_NUM_UNICODE"
+	ErrMinLength         ErrorCode = "USER_MIN_LENGTH"
+	ErrPhoneEmpty        ErrorCode = "USER_PHONE_EMPTY"
+	ErrPhoneFormat       ErrorCode = "USER_PHONE_FORMAT"
+	ErrEmailEmpty        ErrorCode = "USER_EMAIL_EMPTY"
+	ErrEmailFormat       ErrorCode = "USER_EMAIL_FORMAT"
+	ErrAlphaNumUnicode   ErrorCode = "USER_ALPHA_NUM_UNICODE"
 )
 
 // 订单领域错误代码

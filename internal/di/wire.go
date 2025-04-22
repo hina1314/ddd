@@ -12,6 +12,7 @@ import (
 	"study/config"
 	"study/db/model"
 	"study/internal/api/handler"
+	"study/internal/api/response"
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
@@ -22,9 +23,11 @@ import (
 
 // Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
-	UserHandler *handler.UserHandler
-	Config      config.Config // 使用值类型
-	server      *fiber.App    // 非导出字段
+	ResponseHandler *response.ResponseHandler
+	UserHandler     *handler.UserHandler
+	TokenMaker      token.Maker
+	Config          config.Config // 使用值类型
+	server          *fiber.App    // 非导出字段
 }
 
 // NewServer 返回 Fiber 服务器实例。
@@ -66,7 +69,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		app.NewUserService,
 
 		// 表现层
-		handler.NewBaseHandler,
+		response.NewResponseHandler,
 		handler.NewUserHandler,
 
 		// 返回值

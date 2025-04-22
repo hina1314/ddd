@@ -4,6 +4,7 @@ import (
 	"context"
 	"study/db/model"
 	"study/internal/domain/user"
+	"study/util/errors"
 )
 
 type UserAccountRepositoryImpl struct {
@@ -16,24 +17,24 @@ func NewUserAccountRepository(store model.TxManager) user.UserAccountRepository 
 	}
 }
 
-func (r *UserAccountRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
+func (u *UserAccountRepositoryImpl) getQuerier(ctx context.Context) model.Querier {
 	if tx, ok := ctx.Value(model.TxKey{}).(model.Tx); ok {
 		return tx
 	}
-	return r.db
+	return u.db
 }
 
-func (u UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.UserAccount, error) {
+func (u *UserAccountRepositoryImpl) GetByID(ctx context.Context, id int64) (*user.UserAccount, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u UserAccountRepositoryImpl) GetByUserID(ctx context.Context, userID int64) (*user.UserAccount, error) {
+func (u *UserAccountRepositoryImpl) GetByUserID(ctx context.Context, userID int64) (*user.UserAccount, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserAccount) error {
+func (u *UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserAccount) error {
 
 	arg := model.CreateAccountParams{
 		UserID:        account.UserID,
@@ -42,6 +43,9 @@ func (u UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserA
 	}
 	newAcc, err := u.getQuerier(ctx).CreateAccount(ctx, arg)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return errors.New(errors.ErrUserAlreadyExists, "UserAccount already exists")
+		}
 		return err
 	}
 
@@ -51,12 +55,12 @@ func (u UserAccountRepositoryImpl) Save(ctx context.Context, account *user.UserA
 	return nil
 }
 
-func (u UserAccountRepositoryImpl) Update(ctx context.Context, account *user.UserAccount) error {
+func (u *UserAccountRepositoryImpl) Update(ctx context.Context, account *user.UserAccount) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u UserAccountRepositoryImpl) Delete(ctx context.Context, id int64) error {
+func (u *UserAccountRepositoryImpl) Delete(ctx context.Context, id int64) error {
 	//TODO implement me
 	panic("implement me")
 }

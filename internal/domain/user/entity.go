@@ -20,10 +20,8 @@ type User struct {
 
 // NewUser 创建新用户（用于注册）
 func NewUser(phone, email, username, password string) (*User, error) {
-	emailVO, err := NewEmail(email)
-	if err != nil {
-		return nil, err
-	}
+	emailVO := NewEmail(email)
+
 	return &User{
 		Phone:     phone,
 		Email:     emailVO,

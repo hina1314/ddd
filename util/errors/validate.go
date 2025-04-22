@@ -26,9 +26,9 @@ func ValidationErrorToDomainError(ve validator.FieldError) *DomainError {
 		return New(ErrRequired, fmt.Sprintf("field %s is required", field)).
 			WithParams(params)
 	case "phone":
-		return New(ErrPhone, fmt.Sprintf("field %s is incorrect", field))
+		return New(ErrPhoneFormat, fmt.Sprintf("field %s is incorrect", field))
 	case "email":
-		return New(ErrEmail, fmt.Sprintf("field %s must be a valid email address", field)).
+		return New(ErrEmailFormat, fmt.Sprintf("field %s must be a valid email address", field)).
 			WithParams(params)
 	case "min":
 		params["min"] = ve.Param()

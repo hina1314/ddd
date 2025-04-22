@@ -1,4 +1,4 @@
-package handler
+package response
 
 import (
 	stdErr "errors"
@@ -9,21 +9,46 @@ import (
 	"study/util/i18n"
 )
 
-// BaseHandler 提供 HTTP 处理程序的通用方法。
-type BaseHandler struct {
+// SuccessResponse 定义成功响应的结构。
+type SuccessResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
+}
+
+func (h *ResponseHandler) SuccessResponse(c fiber.Ctx, msg string, data interface{}) error {
+	message := h.TranslationService.T(c.Context(), msg, nil)
+	response := SuccessResponse{
+		Code: fiber.StatusOK,
+		Msg:  message,
+		Data: data,
+	}
+	return c.Status(fiber.StatusOK).JSON(response)
+}
+
+type errorResponse struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+	Debug *errors.ErrorTrace `json:"debug,omitempty"`
+}
+
+// ResponseHandler 提供 HTTP 处理程序的通用方法。
+type ResponseHandler struct {
 	ErrorHandler       *errors.ErrorHandler
 	TranslationService *i18n.TranslationService
 }
 
-// NewBaseHandler 创建一个新的 BaseHandler。
-func NewBaseHandler(errHandler *errors.ErrorHandler, translationService *i18n.TranslationService) *BaseHandler {
-	return &BaseHandler{
+// NewResponseHandler 创建一个新的 ResponseHandler。
+func NewResponseHandler(errHandler *errors.ErrorHandler, translationService *i18n.TranslationService) *ResponseHandler {
+	return &ResponseHandler{
 		ErrorHandler:       errHandler,
 		TranslationService: translationService,
 	}
 }
 
-func (h *BaseHandler) handleError(ctx fiber.Ctx, err error) error {
+func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 	var (
 		statusCode     int
 		domainErr      *errors.DomainError

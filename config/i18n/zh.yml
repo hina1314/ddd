@@ -4,10 +4,13 @@ errors.REQUIRED: "{field}为必填项！"
 errors.INVALID_INPUT: "参数无效！"
 
 # user errors
+errors.USER_UNAUTHORIZED: "请登录！"
 errors.USER_NOT_FOUND: "未找到用户!"
 errors.USER_ALREADY_EXISTS: "用户已存在!"
-errors.USER_PHONE: "手机号格式不正确！"
-errors.USER_EMAIL: "邮箱格式不正确！"
+errors.USER_PHONE_FORMAT: "手机号格式不正确！"
+errors.USER_EMAIL_FORMAT: "邮箱格式不正确！"
+errors.USER_PHONE_EMPTY: "手机号不能为空！"
+errors.USER_EMAIL_EMPTY: "邮箱不能为空！"
 errors.USER_MIN_LENGTH: "{field}的长度最少为{min}位！"
 errors.USER_ALPHA_NUM_UNICODE: "{field}不是合法的名称！"
 
@@ -22,7 +25,8 @@ common.goodbye: "再见，{name}。祝您有美好的一天！"
 common.success: "操作已成功完成"
 
 # user message
-user.created: "用户创建成功！"
+user.create: "用户创建成功！"
+user.login: "登录成功！"
 
 
 

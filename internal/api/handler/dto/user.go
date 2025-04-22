@@ -3,10 +3,10 @@ package dto
 import "time"
 
 type CreateUserRequest struct {
-	Phone    string `json:"phone" validate:"required,phone"`
-	Username string `json:"username" validate:"required,alphanumunicode"`
+	Type     int8   `json:"type" validate:"required,oneof=1 2"`
+	Phone    string `json:"phone" validate:"omitempty,phone"`
+	Email    string `json:"email" validate:"omitempty,email"`
 	Password string `json:"password" validate:"required,min=6"`
-	Email    string `json:"email" validate:"email"`
 }
 
 type UserResponse struct {
@@ -18,7 +18,8 @@ type UserResponse struct {
 }
 
 type LoginUserRequest struct {
-	Phone    string `json:"phone" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
+	Type     int8   `json:"type" validate:"required,oneof=1 2"`
+	Phone    string `json:"phone" validate:"omitempty,phone"`
+	Email    string `json:"email" validate:"omitempty,email"`
 	Password string `json:"password" validate:"required,min=6"`
 }

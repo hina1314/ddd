@@ -13,6 +13,7 @@ import (
 	"study/config"
 	"study/db/model"
 	"study/internal/api/handler"
+	"study/internal/api/response"
 	"study/internal/app"
 	"study/internal/domain/user"
 	"study/internal/infra/repository"
@@ -28,6 +29,13 @@ import (
 // Injectors from wire.go:
 
 func initializeDependencies(cfg config.Config) (*Dependencies, error) {
+	errorHandler := newErrorHandler(cfg)
+	fileTranslator := newFileTranslator()
+	translationService, err := newTranslationService(fileTranslator, cfg)
+	if err != nil {
+		return nil, err
+	}
+	responseHandler := response.NewResponseHandler(errorHandler, translationService)
 	txManager, err := newDB(cfg)
 	if err != nil {
 		return nil, err
@@ -39,21 +47,16 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userService := app.NewUserService(domainService, txManager, maker)
-	errorHandler := newErrorHandler(cfg)
-	fileTranslator := newFileTranslator()
-	translationService, err := newTranslationService(fileTranslator, cfg)
-	if err != nil {
-		return nil, err
-	}
-	baseHandler := handler.NewBaseHandler(errorHandler, translationService)
+	userService := app.NewUserService(domainService, cfg, txManager, maker)
 	validate := newValidator()
-	userHandler := handler.NewUserHandler(userService, baseHandler, validate)
+	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
 	fiberApp := newFiberApp()
 	dependencies := &Dependencies{
-		UserHandler: userHandler,
-		Config:      cfg,
-		server:      fiberApp,
+		ResponseHandler: responseHandler,
+		UserHandler:     userHandler,
+		TokenMaker:      maker,
+		Config:          cfg,
+		server:          fiberApp,
 	}
 	return dependencies, nil
 }
@@ -62,9 +65,11 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 
 // Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
-	UserHandler *handler.UserHandler
-	Config      config.Config // 使用值类型
-	server      *fiber.App    // 非导出字段
+	ResponseHandler *response.ResponseHandler
+	UserHandler     *handler.UserHandler
+	TokenMaker      token.Maker
+	Config          config.Config // 使用值类型
+	server          *fiber.App    // 非导出字段
 }
 
 // NewServer 返回 Fiber 服务器实例。

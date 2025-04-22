@@ -13,17 +13,18 @@ func Setup(app *fiber.App, deps *di.Dependencies) {
 	app.Use(middleware.Cors(deps.Config.AllowedOrigins))
 	app.Use(middleware.Logger())
 	app.Use(middleware.Locale(deps.Config.DefaultLocale)) // 使用配置文件中的语言偏好
-
 	// API 版本分组
 	v1 := app.Group("/v1")
+	v1.Post("/signup", deps.UserHandler.CreateUser)
+	v1.Post("/login", deps.UserHandler.Login)
 
+	user := v1.Group("user", middleware.Auth(deps.ResponseHandler, deps.TokenMaker)) // 仅作用于需要认证的接口
 	// 用户路由
-	userRoutes(v1, deps.UserHandler)
+	userRoutes(user, deps.UserHandler)
+
 }
 
 // userRoutes 配置用户相关的路由。
-func userRoutes(group fiber.Router, h *handler.UserHandler) {
-	users := group.Group("/user")
-	users.Post("/signup", h.CreateUser)
-	// users.Post("/login", h.Login) // 未来启用
+func userRoutes(user fiber.Router, h *handler.UserHandler) {
+	user.Post("/info", h.Info)
 }

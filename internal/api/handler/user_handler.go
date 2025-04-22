@@ -1,23 +1,28 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
+	"study/internal/api/middleware"
+	"study/internal/api/response"
 	"study/internal/app"
+	"study/token"
+	"study/util/errors"
 )
 
 // UserHandler 处理用户相关的 HTTP 请求。
 type UserHandler struct {
-	base        *BaseHandler
+	res         *response.ResponseHandler
 	userService *app.UserService
 	validator   *validator.Validate
 }
 
 // NewUserHandler 创建一个新的 UserHandler。
-func NewUserHandler(userService *app.UserService, base *BaseHandler, v *validator.Validate) *UserHandler {
+func NewUserHandler(userService *app.UserService, base *response.ResponseHandler, v *validator.Validate) *UserHandler {
 	return &UserHandler{
-		base:        base,
+		res:         base,
 		userService: userService,
 		validator:   v,
 	}
@@ -27,51 +32,78 @@ func NewUserHandler(userService *app.UserService, base *BaseHandler, v *validato
 func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	var req dto.CreateUserRequest
 	if err := c.Bind().Body(&req); err != nil {
-		return h.base.handleError(c, err)
+		return h.res.HandleError(c, err)
+	}
+
+	switch req.Type {
+	case 1: // phone
+		if req.Phone == "" {
+			return h.res.HandleError(c, errors.New(errors.ErrPhoneEmpty, "phone is empty"))
+		}
+		req.Email = ""
+	case 2: // email
+		if req.Email == "" {
+			return h.res.HandleError(c, errors.New(errors.ErrEmailEmpty, "email is empty"))
+		}
+		req.Phone = ""
+	default:
+		return h.res.HandleError(c, errors.New(errors.ErrInvalidInput, "invalid login type"))
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		return h.base.handleError(c, err)
+		return h.res.HandleError(c, err)
 	}
 
-	newUser, err := h.userService.RegisterUser(c.Context(), req.Username, req.Phone, req.Email, req.Password)
+	newUser, err := h.userService.RegisterUser(c.Context(), req.Phone, req.Email, req.Password)
 	if err != nil {
-		return h.base.handleError(c, err)
+		return h.res.HandleError(c, err)
 	}
 
-	return h.base.successResponse(c, "user.created", newUser)
+	return h.res.SuccessResponse(c, "user.create", newUser)
 }
 
-//func (h *UserHandler) Login(c fiber.Ctx) error {
-//	var req dto.LoginUserRequest
-//	if err := c.Bind().JSON(&req); err != nil {
-//		return c.JSON(errorResponse(err))
-//	}
-//
-//	// 手动验证手机号格式
-//	if !regexp.MustCompile(`^1[3-9]\d{9}$`).MatchString(req.Phone) {
-//		return c.JSON("手机号格式不正确")
-//
-//	}
-//
-//	phoneOrEmail := req.Phone
-//	if phoneOrEmail == "" {
-//		phoneOrEmail = req.Email
-//	}
-//	user, err := h.userService.LoginUser(c.Context(), phoneOrEmail, req.Password)
-//	if err != nil {
-//		//如果是数据库出错
-//		if pqErr, ok := err.(*pq.Error); ok {
-//			switch pqErr.Code.Name() {
-//			case "unique_violation":
-//				return c.JSON("手机号或用户名已存在")
-//			}
-//		}
-//		return c.JSON(errorResponse(err))
-//	}
-//
-//	return c.JSON(user)
-//}
+func (h *UserHandler) Login(c fiber.Ctx) error {
+	fmt.Println("xxxx")
+	var req dto.LoginUserRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	switch req.Type {
+	case 1: // phone
+		if req.Phone == "" {
+			return h.res.HandleError(c, errors.New(errors.ErrPhoneEmpty, "phone is empty"))
+		}
+		req.Email = ""
+	case 2: // email
+		if req.Email == "" {
+			return h.res.HandleError(c, errors.New(errors.ErrEmailEmpty, "email is empty"))
+		}
+		req.Phone = ""
+	default:
+		return h.res.HandleError(c, errors.New(errors.ErrInvalidInput, "invalid login type"))
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	user, err := h.userService.LoginUser(c.Context(), req.Phone, req.Email, req.Password)
+	if err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	return h.res.SuccessResponse(c, "user.login", user)
+}
+
+func (h *UserHandler) Info(c fiber.Ctx) error {
+
+	payload := c.Locals(middleware.AuthorizationPayloadKey).(*token.Payload)
+	userId := payload.UserId
+	fmt.Println(userId)
+
+	return h.res.SuccessResponse(c, "user.info", payload)
+}
 
 //func (h *UserHandler) Update(c fiber.Ctx) error {
 //	var req createUserRequest

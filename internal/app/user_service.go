@@ -2,30 +2,30 @@ package app
 
 import (
 	"context"
+	"study/config"
 	"study/db/model"
 	"study/internal/api/handler/dto"
 	"study/internal/domain/user"
 	"study/token"
 	"study/util/errors"
-	"time"
 )
 
 type UserService struct {
 	domainService *user.DomainService
+	cfg           config.Config
 	txManager     model.TxManager
 	token         token.Maker
 }
 
-func NewUserService(domainService *user.DomainService, txManager model.TxManager, tokenMaker token.Maker) *UserService {
-	return &UserService{domainService: domainService, txManager: txManager, token: tokenMaker}
+func NewUserService(domainService *user.DomainService, cfg config.Config, txManager model.TxManager, tokenMaker token.Maker) *UserService {
+	return &UserService{domainService: domainService, cfg: cfg, txManager: txManager, token: tokenMaker}
 }
 
-func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, password string) (*dto.UserResponse, error) {
+func (s *UserService) RegisterUser(ctx context.Context, phone, email, password string) (*dto.UserResponse, error) {
 	// 应用层只负责协调，具体逻辑交给领域服务
 	// 开始事务
 	tx, err := s.txManager.Begin(ctx)
 	if err != nil {
-		//return nil, fmt.Errorf("start transaction: %w", err)
 		return nil, errors.Wrap(err, errors.ErrInternalError, "Error txManager.Begin")
 	}
 
@@ -37,7 +37,7 @@ func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, pass
 	}()
 
 	ctx = context.WithValue(ctx, model.TxKey{}, tx)
-	record, err := s.domainService.RegisterUser(ctx, name, phone, email, password)
+	record, err := s.domainService.RegisterUser(ctx, phone, email, password)
 	if err != nil {
 		return nil, err
 	}
@@ -51,17 +51,17 @@ func (s *UserService) RegisterUser(ctx context.Context, name, phone, email, pass
 		Username:    record.Username,
 		Email:       record.Email.String(),
 		AccessToken: "",
-		CreatedAt:   time.Time{},
+		CreatedAt:   record.CreatedAt,
 	}, nil
 }
 
-func (s *UserService) LoginUser(ctx context.Context, phoneOrEmail, password string) (*dto.UserResponse, error) {
-	record, err := s.domainService.AuthenticateUser(ctx, phoneOrEmail, password)
+func (s *UserService) LoginUser(ctx context.Context, phone, email, password string) (*dto.UserResponse, error) {
+	record, err := s.domainService.AuthenticateUser(ctx, phone, email, password)
 	if err != nil {
 		return nil, err
 	}
 
-	accessToken, err := s.token.CreateToken(uint64(record.ID), 3600)
+	accessToken, err := s.token.CreateToken(uint64(record.ID), s.cfg.AccessTokenDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +71,6 @@ func (s *UserService) LoginUser(ctx context.Context, phoneOrEmail, password stri
 		Username:    record.Username,
 		Email:       record.Email.String(),
 		AccessToken: accessToken,
-		CreatedAt:   time.Time{},
+		CreatedAt:   record.CreatedAt,
 	}, nil
 }

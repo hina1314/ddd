@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"strings"
 	"study/util"
 	"study/util/errors"
 )
@@ -22,37 +21,37 @@ func NewDomainService(userRepo UserRepository, userAccountRepo UserAccountReposi
 }
 
 // RegisterUser 注册新用户（包含账户创建）
-func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email, password string) (*User, error) {
-	// 检查用户名唯一性
-	existingUser, _ := s.userRepo.GetByUsername(ctx, username)
-	if existingUser != nil {
-		return nil, errors.New(errors.ErrUserAlreadyExists, "username already exists")
+func (s *DomainService) RegisterUser(ctx context.Context, phone, email, password string) (*User, error) {
+	var (
+		user *User
+		err  error
+	)
+	// 检查用户唯一性
+	if phone != "" {
+		user, err = s.userRepo.GetByPhone(ctx, phone)
+	} else {
+		user, err = s.userRepo.GetByEmail(ctx, email)
 	}
 
-	// 检查用户名唯一性
-	existingPhone, _ := s.userRepo.GetByPhone(ctx, phone)
-	if existingPhone != nil {
-		return nil, errors.New(errors.ErrUserAlreadyExists, "phone already exists")
-	}
-
-	// 检查邮箱唯一性
-	existingEmail, _ := s.userRepo.GetByEmail(ctx, email)
-	if existingEmail != nil {
-		return nil, errors.New(errors.ErrUserAlreadyExists, "email already exists")
+	if user != nil {
+		return nil, errors.New(errors.ErrUserAlreadyExists, "user already exists")
 	}
 
 	passwordHash, err := util.HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
+
+	r := util.NewRandUtil()
+	username := r.String(6)
 	// 创建用户
-	user, err := NewUser(phone, email, username, passwordHash)
+	user, err = NewUser(phone, email, username, passwordHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// 保存用户
-	if err := s.userRepo.Save(ctx, user); err != nil {
+	if err = s.userRepo.Save(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -60,9 +59,7 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 	account := NewUserAccount(user.ID)
 
 	// 保存账户
-	if err := s.userAccountRepo.Save(ctx, account); err != nil {
-		// 回滚用户创建
-		_ = s.userRepo.Delete(ctx, user.ID)
+	if err = s.userAccountRepo.Save(ctx, account); err != nil {
 		return nil, err
 	}
 
@@ -70,15 +67,15 @@ func (s *DomainService) RegisterUser(ctx context.Context, username, phone, email
 }
 
 // AuthenticateUser 用户登录认证
-func (s *DomainService) AuthenticateUser(ctx context.Context, phoneOrEmail, password string) (*User, error) {
+func (s *DomainService) AuthenticateUser(ctx context.Context, phone, email, password string) (*User, error) {
 	// 查找用户
 	var user *User
 	var err error
 
-	if strings.Contains(phoneOrEmail, "@") {
-		user, err = s.userRepo.GetByEmail(ctx, phoneOrEmail)
+	if phone != "" {
+		user, err = s.userRepo.GetByPhone(ctx, phone)
 	} else {
-		user, err = s.userRepo.GetByPhone(ctx, phoneOrEmail)
+		user, err = s.userRepo.GetByEmail(ctx, email)
 	}
 
 	if err != nil {
@@ -87,7 +84,7 @@ func (s *DomainService) AuthenticateUser(ctx context.Context, phoneOrEmail, pass
 
 	err = util.CheckPassword(password, user.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, errors.ErrUserNotFound, "incorrect password")
 	}
 
 	return user, nil
