@@ -47,7 +47,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userService := app.NewUserService(domainService, cfg, txManager, maker)
+	userService := app.NewUserService(domainService, userRepository, cfg, txManager, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
 	fiberApp := newFiberApp()

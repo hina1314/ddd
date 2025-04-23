@@ -12,13 +12,14 @@ import (
 
 type UserService struct {
 	domainService *user.DomainService
+	userRepo      user.UserRepository
 	cfg           config.Config
 	txManager     model.TxManager
 	token         token.Maker
 }
 
-func NewUserService(domainService *user.DomainService, cfg config.Config, txManager model.TxManager, tokenMaker token.Maker) *UserService {
-	return &UserService{domainService: domainService, cfg: cfg, txManager: txManager, token: tokenMaker}
+func NewUserService(domainService *user.DomainService, userRepo user.UserRepository, cfg config.Config, txManager model.TxManager, tokenMaker token.Maker) *UserService {
+	return &UserService{domainService: domainService, userRepo: userRepo, cfg: cfg, txManager: txManager, token: tokenMaker}
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, phone, email, password string) (*dto.UserResponse, error) {
@@ -61,7 +62,7 @@ func (s *UserService) LoginUser(ctx context.Context, phone, email, password stri
 		return nil, err
 	}
 
-	accessToken, err := s.token.CreateToken(uint64(record.ID), s.cfg.AccessTokenDuration)
+	accessToken, err := s.token.CreateToken(record.ID, record.Phone, record.Email.String(), s.cfg.AccessTokenDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -72,5 +73,19 @@ func (s *UserService) LoginUser(ctx context.Context, phone, email, password stri
 		Email:       record.Email.String(),
 		AccessToken: accessToken,
 		CreatedAt:   record.CreatedAt,
+	}, nil
+}
+
+func (s *UserService) GetUser(ctx context.Context, userId int64) (*dto.UserResponse, error) {
+	record, err := s.userRepo.GetByID(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.UserResponse{
+		Phone:     record.Phone,
+		Username:  record.Username,
+		Email:     record.Email.String(),
+		CreatedAt: record.CreatedAt,
 	}, nil
 }

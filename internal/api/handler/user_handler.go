@@ -94,13 +94,17 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) Info(c fiber.Ctx) error {
-
 	payload, err := context.GetAuthPayload(c)
 	if err != nil {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.SuccessResponse(c, "user.info", payload)
+	user, err := h.userService.GetUser(c.Context(), payload.UserId)
+	if err != nil {
+		return err
+	}
+
+	return h.res.SuccessResponse(c, "user.info", user)
 }
 
 //func (h *UserHandler) Update(c fiber.Ctx) error {
