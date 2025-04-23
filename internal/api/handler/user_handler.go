@@ -1,13 +1,12 @@
 package handler
 
 import (
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
 	"study/internal/api/response"
 	"study/internal/app"
-	"study/util"
+	"study/util/context"
 	"study/util/errors"
 )
 
@@ -96,8 +95,10 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 
 func (h *UserHandler) Info(c fiber.Ctx) error {
 
-	payload := util.GetAuthPayload(c)
-	fmt.Println(payload.UserId)
+	payload, err := context.GetAuthPayload(c)
+	if err != nil {
+		return h.res.HandleError(c, err)
+	}
 
 	return h.res.SuccessResponse(c, "user.info", payload)
 }

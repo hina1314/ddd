@@ -6,6 +6,7 @@ import (
 	"strings"
 	"study/internal/api/response"
 	"study/token"
+	"study/util/context"
 	"study/util/errors"
 )
 
@@ -43,6 +44,9 @@ func Auth(res *response.ResponseHandler, tokenMaker token.Maker) fiber.Handler {
 		}
 
 		ctx.Locals(AuthorizationPayloadKey, payload)
+		newCtx := context.WithAuthPayload(ctx.Context(), payload)
+		ctx.SetContext(newCtx)
+
 		return ctx.Next()
 	}
 }
