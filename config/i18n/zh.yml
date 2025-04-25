@@ -14,7 +14,7 @@ errors.USER_EMAIL_EMPTY: "邮箱不能为空！"
 errors.USER_MIN_LENGTH: "{field}的长度最少为{min}位！"
 errors.USER_ALPHA_NUM_UNICODE: "{field}不是合法的名称！"
 
-# order errors
+# entity errors
 errors.ORDER_NOT_FOUND: "订单 #{orderID} 未找到"
 errors.INSUFFICIENT_STOCK: "产品 {productName} 库存不足，仅剩 {available} 件"
 
