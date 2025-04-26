@@ -13,6 +13,6 @@ type DatePrice struct {
 	MarketPrice  decimal.Decimal
 	SalePrice    decimal.Decimal
 	TicketPrice  decimal.Decimal
-	TicketStatus int8
+	TicketStatus bool
 	CreatedAt    time.Time
 }

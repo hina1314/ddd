@@ -33,6 +33,26 @@ type Order struct {
 	CreatedAt            time.Time
 }
 
+func NewOrder() *Order {
+	return &Order{
+		Ordersn:              "",
+		CustomerID:           0,
+		HotelID:              0,
+		MerchantID:           0,
+		ProductCategory:      "",
+		TotalPrice:           0,
+		TotalNumber:          0,
+		TotalPayTicket:       0,
+		TotalRefundedAmount:  0,
+		TotalRefundedTickets: 0,
+		TotalRefundedNumber:  0,
+		AllowRefund:          "",
+		Status:               OrderStatusInit,
+		ExpireTime:           nil,
+		CreatedAt:            time.Time{},
+	}
+}
+
 func (o *Order) CanRefund() bool {
 	return o.AllowRefund == "yes"
 }

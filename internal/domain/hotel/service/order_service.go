@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"strings"
+	"study/internal/domain/hotel/entity"
 	"study/internal/domain/hotel/repository"
 	"study/util/errors"
 	"time"
@@ -24,7 +25,7 @@ type Contact struct {
 	Phone string
 }
 
-func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, number int, priceType, payType string, contact [][]Contact) error {
+func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, number int64, priceType uint8, payType string, contact [][]Contact) error {
 	start, _ := time.Parse("2006-01-02", startDate)
 	if start.Before(time.Now().Truncate(24 * time.Hour)) {
 		return errors.New("xxx", "start date cannot be in the past")
@@ -35,7 +36,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		return errors.New("xxx", "end date must be after start date")
 	}
 
-	if len(contact) != number || number == 0 {
+	if len(contact) != int(number) || number == 0 {
 		return errors.New("xxx", "contact doesn't match room number")
 	}
 
@@ -69,10 +70,37 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		return err
 	}
 
-	totalPrice := decimal.Zero
-	for _, datePrice := range datePrices {
-		totalPrice = totalPrice.Add(datePrice.SalePrice)
+	//计算数量
+	totalDays := len(datePrices)
+	totalNum := totalDays * int(number)
+	ticketNum := 0
+
+	if priceType == 2 {
+		ticketNum = totalNum
 	}
+
+	//计算房价单价
+	unitPrice := decimal.Zero
+	for _, datePrice := range datePrices {
+		switch priceType {
+		case 1:
+			unitPrice = unitPrice.Add(datePrice.SalePrice)
+		case 2:
+			if !datePrice.TicketStatus {
+				return errors.New("xxx", fmt.Sprintf("can't use coupon on %v", datePrice.Date))
+			}
+			unitPrice = unitPrice.Add(datePrice.TicketPrice)
+			break
+		default:
+			return errors.New("xxxx", "invalid priceType")
+
+		}
+	}
+
+	totalPrice := unitPrice.Mul(decimal.New(number, 2))
+
+	order := entity.NewOrder()
+	order.CanRefund()
 	return nil
 }
 
