@@ -1,7 +1,7 @@
 postgres = "postgres://postgres:123456@127.0.0.1:5432/postgres?sslmode=disable"
 
 migrate_init:
-	migrate create -ext sql -dir ./db/migration -seq init_schema
+	migrate create -ext sql -dir ./db/migration -seq $(name)
 
 migrate_up:
 	migrate -path db/migration -database $(postgres) --verbose up

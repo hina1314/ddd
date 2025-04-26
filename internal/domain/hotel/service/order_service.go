@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"strings"
 	"study/internal/domain/hotel/repository"
 	"study/util/errors"
@@ -10,10 +12,11 @@ import (
 
 type OrderService struct {
 	userPlanRepo repository.UserPlanRepository
+	hotelSkuRepo repository.HotelSkuRepository
 }
 
-func NewOrderService(userPlanRepo repository.UserPlanRepository) *OrderService {
-	return &OrderService{userPlanRepo: userPlanRepo}
+func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelSkuRepository) *OrderService {
+	return &OrderService{userPlanRepo: userPlanRepo, hotelSkuRepo: hotelSkuRepo}
 }
 
 type Contact struct {
@@ -21,7 +24,7 @@ type Contact struct {
 	Phone string
 }
 
-func (o *OrderService) CreateOrder(skuId int64, startDate, endDate string, number int, priceType, payType string, contact [][]Contact) error {
+func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, number int, priceType, payType string, contact [][]Contact) error {
 	start, _ := time.Parse("2006-01-02", startDate)
 	if start.Before(time.Now().Truncate(24 * time.Hour)) {
 		return errors.New("xxx", "start date cannot be in the past")
@@ -56,6 +59,20 @@ func (o *OrderService) CreateOrder(skuId int64, startDate, endDate string, numbe
 			}
 		}
 	}
+
+	_, err := o.hotelSkuRepo.GetHotelSku(ctx, skuId)
+	if err != nil {
+		return err
+	}
+	datePrices, err := o.hotelSkuRepo.GetPrice(ctx, startDate, endDate)
+	if err != nil {
+		return err
+	}
+
+	totalPrice := decimal.Zero
+	for _, datePrice := range datePrices {
+		totalPrice = totalPrice.Add(datePrice.SalePrice)
+	}
 	return nil
 }
 
@@ -77,7 +94,7 @@ func GetDatesNotLastDay(startDate, endDate string) ([]string, error) {
 	}
 
 	// 初始化结果切片
-	dates := []string{}
+	var dates []string
 
 	// 循环添加日期
 	for startTime.Before(endTime) {

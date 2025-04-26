@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS pt_hotel_room_item CASCADE;
+DROP TABLE IF EXISTS pt_hotel_room_type CASCADE;
+DROP TABLE IF EXISTS pt_hotel_sku CASCADE;
+DROP TABLE IF EXISTS pt_hotel CASCADE;
