@@ -5,8 +5,8 @@ import (
 )
 
 type Hotel struct {
-	ID             uint
-	MerchantID     uint
+	ID             int64
+	MerchantID     int64
 	Name           string
 	Address        string
 	City           string

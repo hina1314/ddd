@@ -13,8 +13,9 @@ import (
 )
 
 type OrderService struct {
-	userPlanRepo repository.UserPlanRepository
-	hotelSkuRepo repository.HotelSkuRepository
+	OrderRepository repository.OrderRepository
+	userPlanRepo    repository.UserPlanRepository
+	hotelSkuRepo    repository.HotelSkuRepository
 }
 
 func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelSkuRepository) *OrderService {
@@ -46,10 +47,6 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		return errors.New("xxx", "contact doesn't match room number")
 	}
 
-	//dates, err := GetDatesNotLastDay(startDate, endDate)
-	//if err != nil {
-	//	return err
-	//}
 	// Clean phone numbers and validate contacts
 	for _, roomContacts := range contact {
 		for _, each := range roomContacts {
@@ -67,7 +64,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		}
 	}
 
-	_, err := o.hotelSkuRepo.GetHotelSku(ctx, skuId)
+	hotelSku, err := o.hotelSkuRepo.GetHotelSku(ctx, skuId)
 	if err != nil {
 		return err
 	}
@@ -105,8 +102,12 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 
 	totalPrice := unitPrice.Mul(decimal.New(number, 2))
 
-	order := entity.NewOrder(payload.UserId)
-	order.CanRefund()
+	order := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum)
+
+	err = o.OrderRepository.Save(ctx, order)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

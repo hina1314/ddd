@@ -36,12 +36,12 @@ type Order struct {
 	CreatedAt            time.Time
 }
 
-func NewOrder(userId, hotelId, merchantId int64, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *Order {
+func NewOrder(userId int64, hotelSku HotelSku, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *Order {
 	return &Order{
 		OrderSn:              orderSn("LJ"),
 		UserId:               userId,
-		HotelID:              hotelId,
-		MerchantID:           merchantId,
+		HotelID:              hotelSku.HotelID,
+		MerchantID:           hotelSku.hotel.MerchantID,
 		ProductCategory:      "",
 		TotalPrice:           totalPrice,
 		TotalNumber:          totalNumber,
@@ -49,7 +49,7 @@ func NewOrder(userId, hotelId, merchantId int64, totalPrice decimal.Decimal, tot
 		TotalRefundedAmount:  decimal.Zero,
 		TotalRefundedTickets: 0,
 		TotalRefundedNumber:  0,
-		AllowRefund:          true,
+		AllowRefund:          hotelSku.RefundStatus,
 		Status:               OrderStatusInit,
 		ExpireTime:           nil,
 		CreatedAt:            time.Time{},
