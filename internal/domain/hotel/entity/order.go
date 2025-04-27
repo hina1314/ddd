@@ -1,6 +1,9 @@
 package entity
 
 import (
+	"fmt"
+	"github.com/shopspring/decimal"
+	"study/util"
 	"time"
 )
 
@@ -16,37 +19,37 @@ const (
 
 type Order struct {
 	ID                   uint
-	Ordersn              string
-	CustomerID           uint
-	HotelID              uint
-	MerchantID           uint
+	OrderSn              string
+	UserId               int64
+	HotelID              int64
+	MerchantID           int64
 	ProductCategory      string
-	TotalPrice           float64
+	TotalPrice           decimal.Decimal
 	TotalNumber          int
 	TotalPayTicket       int
-	TotalRefundedAmount  float64
+	TotalRefundedAmount  decimal.Decimal
 	TotalRefundedTickets int
 	TotalRefundedNumber  int
-	AllowRefund          string
+	AllowRefund          bool
 	Status               OrderStatus
 	ExpireTime           *time.Time
 	CreatedAt            time.Time
 }
 
-func NewOrder() *Order {
+func NewOrder(userId, hotelId, merchantId int64, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *Order {
 	return &Order{
-		Ordersn:              "",
-		CustomerID:           0,
-		HotelID:              0,
-		MerchantID:           0,
+		OrderSn:              orderSn("LJ"),
+		UserId:               userId,
+		HotelID:              hotelId,
+		MerchantID:           merchantId,
 		ProductCategory:      "",
-		TotalPrice:           0,
-		TotalNumber:          0,
-		TotalPayTicket:       0,
-		TotalRefundedAmount:  0,
+		TotalPrice:           totalPrice,
+		TotalNumber:          totalNumber,
+		TotalPayTicket:       totalPayTicket,
+		TotalRefundedAmount:  decimal.Zero,
 		TotalRefundedTickets: 0,
 		TotalRefundedNumber:  0,
-		AllowRefund:          "",
+		AllowRefund:          true,
 		Status:               OrderStatusInit,
 		ExpireTime:           nil,
 		CreatedAt:            time.Time{},
@@ -54,7 +57,7 @@ func NewOrder() *Order {
 }
 
 func (o *Order) CanRefund() bool {
-	return o.AllowRefund == "yes"
+	return o.AllowRefund
 }
 
 func (o *Order) UpdateRefundStats(amount float64, tickets, number int) {
@@ -73,4 +76,11 @@ func (o *Order) MarkAsCheckin() {
 
 func (o *Order) MarkAsCheckout() {
 	o.Status = OrderStatusCheckout
+}
+
+func orderSn(pre string) string {
+	now := time.Now().Format("20060102150405") // Go的时间模板
+	r := util.NewRandUtil()
+	num := r.Int(1000, 9999)
+	return fmt.Sprintf("%v%v%v", pre, now, num)
 }

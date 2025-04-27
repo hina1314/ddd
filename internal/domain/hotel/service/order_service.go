@@ -7,6 +7,7 @@ import (
 	"strings"
 	"study/internal/domain/hotel/entity"
 	"study/internal/domain/hotel/repository"
+	mCtx "study/util/context"
 	"study/util/errors"
 	"time"
 )
@@ -26,6 +27,11 @@ type Contact struct {
 }
 
 func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, number int64, priceType uint8, payType string, contact [][]Contact) error {
+	payload, err := mCtx.GetAuthPayloadFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	start, _ := time.Parse("2006-01-02", startDate)
 	if start.Before(time.Now().Truncate(24 * time.Hour)) {
 		return errors.New("xxx", "start date cannot be in the past")
@@ -99,8 +105,9 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 
 	totalPrice := unitPrice.Mul(decimal.New(number, 2))
 
-	order := entity.NewOrder()
+	order := entity.NewOrder(payload.UserId)
 	order.CanRefund()
+
 	return nil
 }
 
