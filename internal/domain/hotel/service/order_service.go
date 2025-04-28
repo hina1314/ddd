@@ -13,9 +13,9 @@ import (
 )
 
 type OrderService struct {
-	OrderRepository repository.OrderRepository
-	userPlanRepo    repository.UserPlanRepository
-	hotelSkuRepo    repository.HotelSkuRepository
+	OrderRepo    repository.OrderRepository
+	userPlanRepo repository.UserPlanRepository
+	hotelSkuRepo repository.HotelSkuRepository
 }
 
 func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelSkuRepository) *OrderService {
@@ -27,7 +27,7 @@ type Contact struct {
 	Phone string
 }
 
-func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, number int64, priceType uint8, payType string, contact [][]Contact) error {
+func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, endDate string, roomNum int, priceType uint8, payType string, contact [][]Contact) error {
 	payload, err := mCtx.GetAuthPayloadFromContext(ctx)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		return errors.New("xxx", "end date must be after start date")
 	}
 
-	if len(contact) != int(number) || number == 0 {
+	if len(contact) != int(roomNum) || roomNum == 0 {
 		return errors.New("xxx", "contact doesn't match room number")
 	}
 
@@ -75,7 +75,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 
 	//计算数量
 	totalDays := len(datePrices)
-	totalNum := totalDays * int(number)
+	totalNum := totalDays * int(roomNum)
 	ticketNum := 0
 
 	if priceType == 2 {
@@ -100,14 +100,15 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		}
 	}
 
-	totalPrice := unitPrice.Mul(decimal.New(number, 2))
+	totalPrice := unitPrice.Mul(decimal.New(int64(roomNum), 2))
 
-	order := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum)
+	order, err := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum, roomNum)
 
-	err = o.OrderRepository.Save(ctx, order)
 	if err != nil {
 		return err
 	}
+
+	err = o.OrderRepo.SaveOrderRoom(ctx, order.Id)
 
 	return nil
 }

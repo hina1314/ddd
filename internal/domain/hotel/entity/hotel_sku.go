@@ -7,8 +7,9 @@ import (
 
 type HotelSku struct {
 	ID              int64
+	MerchantID      int64
 	HotelID         int64
-	RoomID          int64
+	RoomTypeID      int64
 	Name            string
 	SalesPrice      decimal.Decimal
 	TicketPrice     decimal.Decimal

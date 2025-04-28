@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"study/util"
+	"study/util/errors"
 	"time"
 )
 
@@ -18,9 +19,9 @@ const (
 )
 
 type Order struct {
-	ID                   uint
+	ID                   int64
 	OrderSn              string
-	UserId               int64
+	UserID               int64
 	HotelID              int64
 	MerchantID           int64
 	ProductCategory      string
@@ -32,36 +33,65 @@ type Order struct {
 	TotalRefundedNumber  int
 	AllowRefund          bool
 	Status               OrderStatus
-	ExpireTime           *time.Time
+	Rooms                []OrderRoom
+	ExpireTime           time.Time
 	CreatedAt            time.Time
 }
 
-func NewOrder(userId int64, hotelSku HotelSku, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *Order {
-	return &Order{
-		OrderSn:              orderSn("LJ"),
-		UserId:               userId,
-		HotelID:              hotelSku.HotelID,
-		MerchantID:           hotelSku.hotel.MerchantID,
-		ProductCategory:      "",
-		TotalPrice:           totalPrice,
-		TotalNumber:          totalNumber,
-		TotalPayTicket:       totalPayTicket,
-		TotalRefundedAmount:  decimal.Zero,
-		TotalRefundedTickets: 0,
-		TotalRefundedNumber:  0,
-		AllowRefund:          hotelSku.RefundStatus,
-		Status:               OrderStatusInit,
-		ExpireTime:           nil,
-		CreatedAt:            time.Time{},
+// NewOrder 创建订单，封装业务逻辑
+func NewOrder(userID int64, sku *HotelSku, totalPrice decimal.Decimal, totalNum, ticketNum, roomNum int) (*Order, error) {
+
+	order := &Order{
+		ID:              0,
+		OrderSn:         orderSn("LJ"),
+		UserID:          userID,
+		HotelID:         sku.HotelID,
+		MerchantID:      sku.MerchantID,
+		ProductCategory: "hotel",
+		TotalPrice:      totalPrice,
+		TotalNumber:     totalNum,
+		TotalPayTicket:  ticketNum,
+		AllowRefund:     true,
+		Status:          OrderStatusInit,
+		CreatedAt:       time.Now(),
+		ExpireTime:      time.Now().Add(1800 * time.Second),
+		Rooms:           make([]OrderRoom, roomNum),
 	}
+
+	// 添加 OrderRoom
+	if err := order.AddRoom(sku); err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
+
+// AddRoom 添加房间子单
+func (o *Order) AddRoom(sku *HotelSku) error {
+	if o.Status != OrderStatusInit {
+		return errors.New("xxx", "cannot add room to non-init order")
+	}
+
+	room := OrderRoom{
+		ID:         0,
+		RoomTypeID: sku.RoomTypeID,
+		//RoomItemID: sku.RooomItemID,
+		Price:      sku.SalesPrice,
+		Status:     OrderRoomStatusInit,
+		CreatedAt:  time.Now(),
+		ExpireTime: o.ExpireTime,
+	}
+
+	o.Rooms = append(o.Rooms, room)
+	return nil
 }
 
 func (o *Order) CanRefund() bool {
 	return o.AllowRefund
 }
 
-func (o *Order) UpdateRefundStats(amount float64, tickets, number int) {
-	o.TotalRefundedAmount += amount
+func (o *Order) UpdateRefundStats(amount decimal.Decimal, tickets, number int) {
+	o.TotalRefundedAmount = o.TotalRefundedAmount.Add(amount)
 	o.TotalRefundedTickets += tickets
 	o.TotalRefundedNumber += number
 }
