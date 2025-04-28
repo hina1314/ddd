@@ -5,21 +5,24 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"strings"
-	"study/internal/domain/hotel/entity"
 	"study/internal/domain/hotel/repository"
+	"study/internal/domain/hotel/service"
+	"study/internal/domain/order/entity"
+	repository2 "study/internal/domain/order/repository"
 	mCtx "study/util/context"
 	"study/util/errors"
 	"time"
 )
 
 type OrderService struct {
-	OrderRepo    repository.OrderRepository
+	OrderRepo    repository2.OrderRepository
 	userPlanRepo repository.UserPlanRepository
-	hotelSkuRepo repository.HotelSkuRepository
+	hotelRepo    repository.HotelRepository
+	stockService service.StockService
 }
 
-func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelSkuRepository) *OrderService {
-	return &OrderService{userPlanRepo: userPlanRepo, hotelSkuRepo: hotelSkuRepo}
+func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelRepository) *OrderService {
+	return &OrderService{userPlanRepo: userPlanRepo, hotelRepo: hotelSkuRepo}
 }
 
 type Contact struct {
@@ -43,7 +46,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		return errors.New("xxx", "end date must be after start date")
 	}
 
-	if len(contact) != int(roomNum) || roomNum == 0 {
+	if len(contact) != roomNum || roomNum == 0 {
 		return errors.New("xxx", "contact doesn't match room number")
 	}
 
@@ -64,20 +67,21 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 		}
 	}
 
-	hotelSku, err := o.hotelSkuRepo.GetHotelSku(ctx, skuId)
+	hotelSku, err := o.hotelRepo.FindSkuByID(ctx, skuId)
 	if err != nil {
 		return err
 	}
-	datePrices, err := o.hotelSkuRepo.GetPrice(ctx, startDate, endDate)
+	datePrices, err := o.hotelRepo.GetPrice(ctx, startDate, endDate)
 	if err != nil {
 		return err
 	}
 
 	//计算数量
 	totalDays := len(datePrices)
-	totalNum := totalDays * int(roomNum)
+	totalNum := totalDays * roomNum
 	ticketNum := 0
 
+	// 房券支付
 	if priceType == 2 {
 		ticketNum = totalNum
 	}
@@ -102,13 +106,22 @@ func (o *OrderService) CreateOrder(ctx context.Context, skuId int64, startDate, 
 
 	totalPrice := unitPrice.Mul(decimal.New(int64(roomNum), 2))
 
-	order, err := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum, roomNum)
-
+	// 查询库存
+	roomItemIDs, err := o.stockService.AllocateRoom(ctx, hotelSku.HotelID, hotelSku.RoomTypeID, roomNum, start, end)
 	if err != nil {
 		return err
 	}
 
-	err = o.OrderRepo.SaveOrderRoom(ctx, order.Id)
+	// 创建订单
+	order, err := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum, roomNum)
+	if err != nil {
+		return err
+	}
+
+	// 添加房间
+	if err = order.AddRoom(hotelSku, roomItemIDs); err != nil {
+		return err
+	}
 
 	return nil
 }

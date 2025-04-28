@@ -12,7 +12,7 @@ const (
 	RefundStatusRejected RefundStatus = "rejected"
 )
 
-type Refund struct {
+type OrderRefund struct {
 	ID            uint
 	OrderID       uint
 	OrderRoomID   uint

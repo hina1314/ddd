@@ -2,6 +2,7 @@ package entity
 
 import (
 	"github.com/shopspring/decimal"
+	"study/internal/domain/hotel/entity"
 	"time"
 )
 
@@ -19,16 +20,14 @@ type OrderRoom struct {
 	RoomItemID int64
 	Price      decimal.Decimal
 	Status     OrderRoomStatus
-	ExpireTime time.Time
 	CreatedAt  time.Time
 }
 
-func NewOrderRoom(userId int64, hotelSku HotelSku, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *OrderRoom {
+func NewOrderRoom(userId int64, hotelSku entity.HotelSku, totalPrice decimal.Decimal, totalNumber, totalPayTicket int) *OrderRoom {
 	return &OrderRoom{
 		HotelID:    hotelSku.HotelID,
-		MerchantID: hotelSku.hotel.MerchantID,
+		MerchantID: hotelSku.Hotel.MerchantID,
 		Status:     OrderRoomStatusInit,
-		ExpireTime: time.Now().Add(1800 * time.Second),
 		CreatedAt:  time.Time{},
 	}
 }

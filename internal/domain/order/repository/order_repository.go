@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"study/internal/domain/hotel/entity"
+	"study/internal/domain/order/entity"
 )
 
 // OrderRepository 只针对 Order 聚合根

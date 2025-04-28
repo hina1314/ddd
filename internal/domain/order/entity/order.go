@@ -3,6 +3,7 @@ package entity
 import (
 	"fmt"
 	"github.com/shopspring/decimal"
+	"study/internal/domain/hotel/entity"
 	"study/util"
 	"study/util/errors"
 	"time"
@@ -38,51 +39,53 @@ type Order struct {
 	CreatedAt            time.Time
 }
 
-// NewOrder 创建订单，封装业务逻辑
-func NewOrder(userID int64, sku *HotelSku, totalPrice decimal.Decimal, totalNum, ticketNum, roomNum int) (*Order, error) {
-
+// NewOrder 创建订单
+func NewOrder(userID int64, sku *entity.HotelSku, totalPrice decimal.Decimal, totalNum, totalTicket, roomNum int) (*Order, error) {
 	order := &Order{
-		ID:              0,
-		OrderSn:         orderSn("LJ"),
-		UserID:          userID,
-		HotelID:         sku.HotelID,
-		MerchantID:      sku.MerchantID,
-		ProductCategory: "hotel",
-		TotalPrice:      totalPrice,
-		TotalNumber:     totalNum,
-		TotalPayTicket:  ticketNum,
-		AllowRefund:     true,
-		Status:          OrderStatusInit,
-		CreatedAt:       time.Now(),
-		ExpireTime:      time.Now().Add(1800 * time.Second),
-		Rooms:           make([]OrderRoom, roomNum),
+		ID:             0,
+		OrderSn:        orderSn("LJ"),
+		UserID:         userID,
+		HotelID:        sku.HotelID,
+		MerchantID:     sku.MerchantID,
+		TotalPrice:     totalPrice,
+		TotalNumber:    totalNum,
+		TotalPayTicket: totalTicket,
+		AllowRefund:    sku.RefundStatus,
+		Status:         OrderStatusInit,
+		CreatedAt:      time.Now(),
+		ExpireTime:     time.Now().Add(24 * time.Hour),
+		Rooms:          make([]OrderRoom, roomNum),
 	}
-
-	// 添加 OrderRoom
-	if err := order.AddRoom(sku); err != nil {
-		return nil, err
-	}
-
 	return order, nil
 }
 
 // AddRoom 添加房间子单
-func (o *Order) AddRoom(sku *HotelSku) error {
+func (o *Order) AddRoom(sku *entity.HotelSku, roomItemIDs []int64) error {
 	if o.Status != OrderStatusInit {
 		return errors.New("xxx", "cannot add room to non-init order")
 	}
 
-	room := OrderRoom{
-		ID:         0,
-		RoomTypeID: sku.RoomTypeID,
-		//RoomItemID: sku.RooomItemID,
-		Price:      sku.SalesPrice,
-		Status:     OrderRoomStatusInit,
-		CreatedAt:  time.Now(),
-		ExpireTime: o.ExpireTime,
+	//for roomItemID := range roomItemIDs {
+	//	o.Rooms = append(o.Rooms, OrderRoom{
+	//		ID:         0,
+	//		RoomTypeID: sku.RoomTypeID,
+	//		RoomItemID: int64(roomItemID),
+	//		Price:      sku.SalesPrice,
+	//		Status:     OrderRoomStatusInit,
+	//		CreatedAt:  time.Now(),
+	//	})
+	//}
+	for i, roomItemID := range roomItemIDs {
+		o.Rooms[i] = OrderRoom{
+			ID:         0,
+			RoomTypeID: sku.RoomTypeID,
+			RoomItemID: roomItemID,
+			Price:      sku.SalesPrice,
+			Status:     OrderRoomStatusInit,
+			CreatedAt:  time.Now(),
+		}
 	}
 
-	o.Rooms = append(o.Rooms, room)
 	return nil
 }
 

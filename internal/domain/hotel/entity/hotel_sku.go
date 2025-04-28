@@ -18,6 +18,6 @@ type HotelSku struct {
 	RefundAudit     string
 	RefundCondition string // JSON
 	Status          string
-	hotel           Hotel
+	Hotel           Hotel
 	CreatedAt       time.Time
 }
