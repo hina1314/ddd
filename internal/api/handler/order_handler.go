@@ -6,9 +6,8 @@ import (
 	"study/internal/api/handler/dto"
 	"study/internal/api/response"
 	"study/internal/app"
-	"study/internal/app/co"
-	"study/util/errors"
-	"time"
+	"study/internal/assemble"
+	"study/util/context"
 )
 
 type OrderHandler struct {
@@ -17,10 +16,11 @@ type OrderHandler struct {
 	validator    *validator.Validate
 }
 
-func NewOrderHandler(base *response.ResponseHandler, v *validator.Validate) *OrderHandler {
+func NewOrderHandler(base *response.ResponseHandler, orderService *app.OrderService, v *validator.Validate) *OrderHandler {
 	return &OrderHandler{
-		res:       base,
-		validator: v,
+		res:          base,
+		orderService: orderService,
+		validator:    v,
 	}
 }
 
@@ -31,23 +31,23 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
+	var payload, err = context.GetAuthPayloadFromContext(c.Context())
+	if err != nil {
+		return err
+	}
+
 	if err := h.validator.Struct(req); err != nil {
 		return h.res.HandleError(c, err)
 	}
 
-	commandObj := co.CreateOrderCommand{
-		SkuID:     req.SkuID,
-		StartDate: req.StartDate,
-		EndDate:   req.EndDate,
-		Number:    req.Number,
-		PriceType: req.PriceType,
-		PayType:   req.PayType,
-		Contact:   nil,
+	cmd, err := assemble.NewCreateOrderCommand(req, payload)
+	if err != nil {
+		return h.res.HandleError(c, err)
 	}
-	order, err := h.orderService.CreateOrder(c.Context(), commandObj)
+	res, err := h.orderService.CreateOrder(c.Context(), cmd)
 	if err != nil {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.SuccessResponse(c, "user.create", order)
+	return h.res.SuccessResponse(c, "order.create", res)
 }

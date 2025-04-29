@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type DatePrice struct {
+type SkuDayPrice struct {
 	HotelId      int64
 	SkuId        int64
 	RoomTypeId   int64

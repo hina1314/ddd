@@ -2,117 +2,108 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"github.com/shopspring/decimal"
-	"study/internal/app/co"
+	"study/internal/api/handler/dto"
+	"study/internal/assemble"
 	entity2 "study/internal/domain/hotel/entity"
 	repository2 "study/internal/domain/hotel/repository"
 	"study/internal/domain/hotel/service"
 	"study/internal/domain/order/entity"
 	"study/internal/domain/order/repository"
-	service2 "study/internal/domain/order/service"
 	"study/internal/domain/user"
-	mCtx "study/util/context"
+	service2 "study/internal/domain/user/service"
 	"study/util/errors"
 	"time"
 )
 
 type OrderService struct {
-	orderRepo      repository.OrderRepository
-	hotelRepo      repository2.HotelRepository
-	userRepo       user.UserRepository
-	stockDomainSvc service.StockService
-	orderDomainSvc service2.OrderService
+	orderRepo         repository.OrderRepository
+	hotelRepo         repository2.HotelRepository
+	userRepo          user.UserRepository
+	stockDomainSvc    *service.StockService
+	pricingDomainSvc  *service.PricingService
+	userPlanDomainSvc service2.UserPlanService
+}
+
+func NewOrderService(orderRepo repository.OrderRepository, hotelRepo repository2.HotelRepository, userRepo user.UserRepository, stockDomainSvc *service.StockService, pricingDomainSvc *service.PricingService, userPlanDomainSvc service2.UserPlanService) *OrderService {
+	return &OrderService{
+		orderRepo:         orderRepo,
+		hotelRepo:         hotelRepo,
+		userRepo:          userRepo,
+		stockDomainSvc:    stockDomainSvc,
+		pricingDomainSvc:  pricingDomainSvc,
+		userPlanDomainSvc: userPlanDomainSvc,
+	}
 }
 
 // CreateOrder /service/order_service.go
-func (s *OrderService) CreateOrder(ctx context.Context, command co.CreateOrderCommand) error {
+func (s *OrderService) CreateOrder(ctx context.Context, cmd *assemble.CreateOrderCommand) (*dto.CreateOrderResponse, error) {
 	// 参数验证
-	var payload, err = mCtx.GetAuthPayloadFromContext(ctx)
-	if err != nil {
-		return err
-	}
-	start, _ := time.Parse("2006-01-02", startDate)
-	if start.Before(time.Now().Truncate(24 * time.Hour)) {
-		return errors.New("xxx", "start date cannot be in the past")
+	if cmd.Start.Before(time.Now().Truncate(24 * time.Hour)) {
+		return nil, errors.New("xxx", "start date cannot be"+
+			" in the past")
 	}
 
-	end, _ := time.Parse("2006-01-02", endDate)
-	if !end.After(start) {
-		return errors.New("xxx", "end date must be after start date")
+	if !cmd.End.After(cmd.Start) {
+		return nil, errors.New("xxx", "end date must be after start date")
 	}
+
 	// 获取所需数据
-	hotelSku, err := s.hotelRepo.FindSkuByID(ctx, skuID)
+	hotelSku, err := s.hotelRepo.FindSkuByID(ctx, cmd.SkuID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 检查预订冲突
-	for _, one := range contact {
-		for _, one2 := range one {
-			if err = s.userRepo.CheckBookingConflicts(ctx, start, end, one2); err != nil {
-				return err
+	for _, roomContact := range cmd.Contact {
+		for _, contact := range roomContact.Guests {
+			if err = s.userRepo.CheckBookingConflicts(ctx, cmd.Start, cmd.End, contact.Phone); err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	// 计算价格和分配房间
-	datePrices, err := s.hotelRepo.GetPrice(ctx, start, end)
+	datePrices, err := s.hotelRepo.GetPrice(ctx, cmd.Start, cmd.End)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//计算数量
 	totalDays := len(datePrices)
-	totalNum := totalDays * roomNum
+	totalNum := totalDays * cmd.Number
 	ticketNum := 0
 
 	// 房券支付
-	if priceType == 2 {
+	if cmd.PayType == "ticket" {
 		ticketNum = totalNum
 	}
 
-	//计算房价单价
-	unitPrice := decimal.Zero
-	for _, datePrice := range datePrices {
-		switch priceType {
-		case 1:
-			unitPrice = unitPrice.Add(datePrice.SalePrice)
-		case 2:
-			if !datePrice.TicketStatus {
-				return errors.New("xxx", fmt.Sprintf("can't use coupon on %v", datePrice.Date))
-			}
-			unitPrice = unitPrice.Add(datePrice.TicketPrice)
-			break
-		default:
-			return errors.New("xxxx", "invalid priceType")
-
-		}
+	totalPrice, err := s.pricingDomainSvc.CalculateTotalPrice(datePrices, cmd.PriceType, cmd.Number)
+	if err != nil {
+		return nil, err
 	}
 
-	totalPrice := unitPrice.Mul(decimal.New(int64(roomNum), 2))
-
 	// 查询库存
-	roomItemIDs, err := s.stockDomainSvc.AllocateRoom(ctx, hotelSku.HotelID, hotelSku.RoomTypeID, roomNum, start, end)
+	roomItemIDs, err := s.stockDomainSvc.AllocateRoom(ctx, hotelSku.HotelID, hotelSku.RoomTypeID, cmd.Number, cmd.Start, cmd.End)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 创建订单
-	order, err := entity.NewOrder(payload.UserId, hotelSku, totalPrice, totalNum, ticketNum, roomNum)
+	order, err := entity.NewOrder(cmd.UserID, hotelSku, totalPrice, totalNum, ticketNum, cmd.Number)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 添加房间
 	if err = order.AddRoom(hotelSku, roomItemIDs); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 持久化
 	err = s.orderRepo.Save(ctx, order)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 向房态中添加数据
@@ -132,50 +123,25 @@ func (s *OrderService) CreateOrder(ctx context.Context, command co.CreateOrderCo
 
 	err = s.hotelRepo.AddRoomDate(ctx, roomDates)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 添加用户行程
-	var userPlans = make([]user.UserPlan, 0)
-	for _, one := range contact {
-		for _, one2 := range one {
-			userPlans = append(userPlans, user.UserPlan{
-				ID:         0,
-				OrderId:    0,
-				RoomItemID: 0,
-				Phone:      "",
-				Name:       one2,
-				Start:      time.Time{},
-				End:        time.Time{},
-				Status:     user.UserPlanStatusInit,
-				CreatedAt:  time.Time{},
-				UpdatedAt:  time.Time{},
-				DeletedAt:  nil,
-			})
-		}
+	if len(cmd.Contact) != len(roomItemIDs) {
+		return nil, errors.New("xxxx", "room number mismatch")
+	}
+
+	userPlans, err := s.userPlanDomainSvc.BuildPlans(order.ID, roomItemIDs, cmd.Contact, cmd.Start, cmd.End)
+	if err != nil {
+		return nil, err
 	}
 
 	err = s.userRepo.AddUserPlan(ctx, userPlans)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &dto.CreateOrderResponse{
+		OrderID: order.ID,
+		Total:   order.TotalPrice,
+	}, nil
 }
-
-//func (s *OrderService) CreateOrder(userId int64, sku HotelSku, prices []DatePrice, roomNum int, priceType uint8, roomItemIDs []int64) (*entity.Order, error) {
-//	// 计算价格（领域规则）
-//	totalPrice, ticketNum := s.calculatePrice(prices, roomNum, priceType)
-//
-//	// 创建订单实体
-//	order, err := entity.NewOrder(userId, sku, totalPrice, totalDays*roomNum, ticketNum, roomNum)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// 添加房间
-//	if err := order.AddRoom(sku, roomItemIDs); err != nil {
-//		return nil, err
-//	}
-//
-//	return order, nil
-//}

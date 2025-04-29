@@ -28,6 +28,9 @@ common.success: "操作已成功完成"
 user.create: "用户创建成功！"
 user.login: "登录成功！"
 
+# order
+order.create: "订单创建成功！"
+
 
 
 
