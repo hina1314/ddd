@@ -134,3 +134,23 @@ func (ua *UserAccount) Reactivate() {
 	ua.Status = "active"
 	ua.UpdatedAt = time.Now()
 }
+
+type UserPlanStatus int
+
+const (
+	UserPlanStatusInit UserPlanStatus = 0
+)
+
+type UserPlan struct {
+	ID         int64
+	OrderId    int64
+	RoomItemID int64
+	Phone      string
+	Name       string
+	Start      time.Time
+	End        time.Time
+	Status     UserPlanStatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time
+}

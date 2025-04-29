@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"time"
 )
 
 // UserRepository 用户实体仓储接口
@@ -14,6 +15,8 @@ type UserRepository interface {
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, limit, offset int) ([]*User, int, error)
+	CheckBookingConflicts(ctx context.Context, start, end time.Time, phone string) error
+	AddUserPlan(ctx context.Context, userPlan []UserPlan) error
 }
 
 // UserAccountRepository 用户账户仓储接口

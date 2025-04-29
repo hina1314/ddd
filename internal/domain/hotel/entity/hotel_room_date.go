@@ -4,25 +4,26 @@ import (
 	"time"
 )
 
-type RoomDateStatus string
+type RoomDateStatus int
 
 const (
-	RoomDateStatusAvailable RoomDateStatus = "available"
-	RoomDateStatusLocked    RoomDateStatus = "locked"
-	RoomDateStatusCheckin   RoomDateStatus = "checkin"
+	RoomDateStatusOrderLock   RoomDateStatus = 0
+	RoomDateStatusWaitCheckin RoomDateStatus = 1
+	RoomDateStatusCheckin     RoomDateStatus = 2
+	RoomDateStatusCheckout    RoomDateStatus = 3
+	RoomDateStatusLock        RoomDateStatus = 4
 )
 
-type RoomDate struct {
-	ID             uint
-	OrderID        uint
-	HotelID        uint
-	RoomID         uint
-	RoomInstanceID uint
-	Date           time.Time
-	Status         RoomDateStatus
-	CreatedAt      time.Time
+type HotelRoomDate struct {
+	ID        int64
+	OrderID   int64
+	HotelID   int64
+	RoomID    int64
+	Date      time.Time
+	Status    RoomDateStatus
+	CreatedAt time.Time
 }
 
-func (rd *RoomDate) MarkAsCheckin() {
+func (rd *HotelRoomDate) MarkAsCheckin() {
 	rd.Status = RoomDateStatusCheckin
 }
