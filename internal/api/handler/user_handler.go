@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
 	"study/internal/api/response"
-	"study/internal/app"
+	"study/internal/app/user"
 	"study/util/context"
 	"study/util/errors"
 )
@@ -13,12 +13,12 @@ import (
 // UserHandler 处理用户相关的 HTTP 请求。
 type UserHandler struct {
 	res         *response.ResponseHandler
-	userService *app.UserService
+	userService *user.UserService
 	validator   *validator.Validate
 }
 
 // NewUserHandler 创建一个新的 UserHandler。
-func NewUserHandler(userService *app.UserService, base *response.ResponseHandler, v *validator.Validate) *UserHandler {
+func NewUserHandler(userService *user.UserService, base *response.ResponseHandler, v *validator.Validate) *UserHandler {
 	return &UserHandler{
 		res:         base,
 		userService: userService,
@@ -99,7 +99,7 @@ func (h *UserHandler) Info(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
-	user, err := h.userService.GetUser(c.Context(), payload.UserId)
+	user, err := h.userService.GetUserByID(c.Context(), payload.UserId)
 	if err != nil {
 		return err
 	}

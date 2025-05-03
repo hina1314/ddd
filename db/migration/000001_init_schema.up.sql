@@ -13,3 +13,5 @@ CREATE TABLE "public"."user" (
 -- 重新创建唯一索引，防止重复
 CREATE UNIQUE INDEX "idx_phone" ON "public"."user" ("phone");
 CREATE UNIQUE INDEX "idx_email" ON "public"."user" ("email");
+
+COMMENT ON TABLE "user" IS '用户';

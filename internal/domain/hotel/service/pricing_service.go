@@ -10,8 +10,12 @@ import (
 type PricingService struct {
 }
 
+func NewPricingService() *PricingService {
+	return &PricingService{}
+}
+
 // CalculateTotalPrice 根据价格类型和每日价格列表，计算总价
-func (s *PricingService) CalculateTotalPrice(datePrices []entity.SkuDayPrice, priceType int8, roomCount int) (decimal.Decimal, error) {
+func (s *PricingService) CalculateTotalPrice(datePrices []entity.HotelSkuDayPrice, priceType int8, roomCount int) (decimal.Decimal, error) {
 	unitPrice := decimal.Zero
 
 	for _, datePrice := range datePrices {
@@ -20,7 +24,7 @@ func (s *PricingService) CalculateTotalPrice(datePrices []entity.SkuDayPrice, pr
 			unitPrice = unitPrice.Add(datePrice.SalePrice)
 		case 2:
 			if !datePrice.TicketStatus {
-				return decimal.Zero, errors.New("invalid_price_type", fmt.Sprintf("can't use coupon on %v", datePrice.Date))
+				return decimal.Zero, errors.New(errors.ErrTicketNotSupport, fmt.Sprintf("can't use coupon on %v", datePrice.Date))
 			}
 			unitPrice = unitPrice.Add(datePrice.TicketPrice)
 		default:

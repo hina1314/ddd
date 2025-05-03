@@ -7,6 +7,8 @@ package model
 
 import (
 	"context"
+
+	"github.com/shopspring/decimal"
 )
 
 const countUsers = `-- name: CountUsers :one
@@ -53,6 +55,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const createUserAccount = `-- name: CreateUserAccount :exec
+INSERT INTO user_account (user_id, frozen_balance, balance)
+VALUES ($1, $2, $3)
+`
+
+type CreateUserAccountParams struct {
+	UserID        int64           `json:"user_id"`
+	FrozenBalance decimal.Decimal `json:"frozen_balance"`
+	Balance       decimal.Decimal `json:"balance"`
+}
+
+func (q *Queries) CreateUserAccount(ctx context.Context, arg CreateUserAccountParams) error {
+	_, err := q.db.ExecContext(ctx, createUserAccount, arg.UserID, arg.FrozenBalance, arg.Balance)
+	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec

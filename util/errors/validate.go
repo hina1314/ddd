@@ -37,6 +37,8 @@ func ValidationErrorToDomainError(ve validator.FieldError) *DomainError {
 	case "alphanumunicode":
 		return New(ErrAlphaNumUnicode, fmt.Sprintf("field %s must contain only alphanumeric characters", field)).
 			WithParams(params)
+	case "numeric":
+		return New(ErrInteger, fmt.Sprintf("field %s must be a valid integer", field)).WithParams(params)
 	default:
 		return New(ErrInvalidInput, fmt.Sprintf("field %s is invalid: %s", field, ve.Tag())).
 			WithParams(params)

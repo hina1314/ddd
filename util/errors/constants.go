@@ -7,6 +7,8 @@ const (
 	ErrInternalError ErrorCode = "INTERNAL_ERROR"
 	ErrTxError       ErrorCode = "Transaction_Failure"
 	ErrDatabaseError ErrorCode = "Database_Error"
+	ErrInteger       ErrorCode = "ERROR_INTEGER"
+	ErrDateFormat    ErrorCode = "ERROR_DATE_FORMAT"
 )
 
 // 用户领域错误代码
@@ -27,4 +29,16 @@ const (
 	ErrOrderNotFound     ErrorCode = "ORDER_NOT_FOUND"
 	ErrInsufficientStock ErrorCode = "ORDER_INSUFFICIENT_STOCK"
 	ErrPaymentFailed     ErrorCode = "ORDER_PAYMENT_FAILED"
+	ErrStartDatePast     ErrorCode = "ORDER_START_DATE_PAST"
+	ErrStartDateDisorder ErrorCode = "ORDER_START_DATE_DISORDER"
+	ErrBookingConflict   ErrorCode = "ORDER_BOOKING_CONFLICT"
+)
+
+// 酒店领域错误
+
+const (
+	ErrHotelSkuNotFound ErrorCode = "HOTEL_SKU_NOT_FOUND"
+	ErrNoSkuPrice       ErrorCode = "HOTEL_NO_SKU_PRICE"
+	ErrNoStock          ErrorCode = "HOTEL_NO_STOCK"
+	ErrTicketNotSupport ErrorCode = "HOTEL_TICKET_NOT_SUPPORT"
 )

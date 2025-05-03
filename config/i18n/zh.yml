@@ -2,6 +2,8 @@
 errors.INTERNAL_ERROR: "内部服务器错误"
 errors.REQUIRED: "{field}为必填项！"
 errors.INVALID_INPUT: "参数无效！"
+errors.ERROR_INTEGER: "{field}不是正确的整数类型"
+errors.ERROR_DATE_FORMAT: "日期格式不正确！"
 
 # user errors
 errors.USER_UNAUTHORIZED: "请登录！"
@@ -14,10 +16,18 @@ errors.USER_EMAIL_EMPTY: "邮箱不能为空！"
 errors.USER_MIN_LENGTH: "{field}的长度最少为{min}位！"
 errors.USER_ALPHA_NUM_UNICODE: "{field}不是合法的名称！"
 
-# entity errors
+# hotel errors
+errors.HOTEL_SKU_NOT_FOUND: "未找到房间信息！"
+errors.HOTEL_NO_SKU_PRICE: "房间尚未设置价格！"
+errors.HOTEL_NO_STOCK: "没有可用房间！"
+errors.HOTEL_TICKET_NOT_SUPPORT: "不可使用房券！"
+
+# order errors
 errors.ORDER_NOT_FOUND: "订单 #{orderID} 未找到"
 errors.INSUFFICIENT_STOCK: "产品 {productName} 库存不足，仅剩 {available} 件"
-
+errors.ORDER_START_DATE_PAST: "开始时间不能早于今日！"
+errors.ORDER_START_DATE_DISORDER: "结束时间必须大于开始时间！"
+errors.ORDER_BOOKING_CONFLICT: "所选日期已存在别的预约记录！"
 
 # common message
 common.welcome: "欢迎使用我们的应用，{name}！"

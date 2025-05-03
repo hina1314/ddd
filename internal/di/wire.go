@@ -13,9 +13,14 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
-	"study/internal/app"
-	"study/internal/domain/user"
-	"study/internal/infra/repository"
+	"study/internal/app/order"
+	"study/internal/app/user"
+	hotelService "study/internal/domain/hotel/service"
+	orderService "study/internal/domain/order/service"
+	userService "study/internal/domain/user/service"
+	hotelRepo "study/internal/infra/hotel"
+	orderRepo "study/internal/infra/order"
+	userRepo "study/internal/infra/user"
 	"study/token"
 	"study/util/errors"
 	"study/util/i18n"
@@ -25,6 +30,7 @@ import (
 type Dependencies struct {
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
+	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
@@ -59,18 +65,27 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		wire.Bind(new(i18n.Translator), new(*i18n.FileTranslator)),
 		newFileTranslator,
 		newTranslationService,
-		repository.NewUserRepository,
-		repository.NewUserAccountRepository,
-
+		userRepo.NewUserRepository,
+		userRepo.NewUserPlanRepo,
+		hotelRepo.NewHotelRepository,
+		orderRepo.NewOrderRepository,
 		// 领域层
-		user.NewDomainService,
-
+		// user
+		userService.NewUserLoginService,
+		userService.NewUserRegisterService,
+		userService.NewUserPlanService,
+		// hotel
+		hotelService.NewPricingService,
+		hotelService.NewStockService,
+		// order
+		orderService.NewOrderService,
 		// 应用层
-		app.NewUserService,
-
+		user.NewUserService,
+		order.NewOrderService,
 		// 表现层
 		response.NewResponseHandler,
 		handler.NewUserHandler,
+		handler.NewOrderHandler,
 
 		// 返回值
 		wire.Struct(new(Dependencies), "*"),

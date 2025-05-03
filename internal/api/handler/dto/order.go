@@ -12,10 +12,10 @@ type RoomContact struct {
 }
 
 type CreateOrderRequest struct {
-	SkuID     int64         `json:"sku_id" validate:"required,Numeric"`
+	SkuID     int64         `json:"sku_id" validate:"required,numeric"`
 	StartDate string        `json:"start_date" validate:"required"`
 	EndDate   string        `json:"end_date" validate:"required"`
-	Number    int           `json:"number" validate:"required,Numeric"` // 房间数量
+	Number    int           `json:"number" validate:"required,numeric"` // 房间数量
 	Contact   []RoomContact `json:"contact" validate:"required,dive"`   // 一维数组，长度 = 房间数量
 	PriceType int8          `json:"price_type" validate:"required,oneof=1 2"`
 	PayType   string        `json:"pay_type" validate:"required,oneof=wechat ticket"`

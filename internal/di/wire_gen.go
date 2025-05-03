@@ -14,9 +14,14 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
-	"study/internal/app"
-	"study/internal/domain/user"
-	"study/internal/infra/repository"
+	order2 "study/internal/app/order"
+	user2 "study/internal/app/user"
+	service2 "study/internal/domain/hotel/service"
+	service3 "study/internal/domain/order/service"
+	"study/internal/domain/user/service"
+	"study/internal/infra/hotel"
+	"study/internal/infra/order"
+	"study/internal/infra/user"
 	"study/token"
 	"study/util/errors"
 	"study/util/i18n"
@@ -40,23 +45,33 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repository.NewUserRepository(txManager)
-	userAccountRepository := repository.NewUserAccountRepository(txManager)
-	domainService := user.NewDomainService(userRepository, userAccountRepository)
+	userRepository := user.NewUserRepository(txManager)
+	userRegisterService := service.NewUserRegisterService(userRepository)
+	userLoginService := service.NewUserLoginService(userRepository)
 	maker, err := newTokenMaker(cfg)
 	if err != nil {
 		return nil, err
 	}
-	userService := app.NewUserService(domainService, userRepository, cfg, txManager, maker)
+	userService := user2.NewUserService(userRegisterService, userLoginService, userRepository, cfg, txManager, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
-	fiberApp := newFiberApp()
+	orderRepository := order.NewOrderRepository(txManager)
+	hotelRepository := hotel.NewHotelRepository(txManager)
+	stockService := service2.NewStockService(hotelRepository)
+	pricingService := service2.NewPricingService()
+	userPlanRepository := user.NewUserPlanRepo(txManager)
+	userPlanService := service.NewUserPlanService(userPlanRepository)
+	orderService := service3.NewOrderService(orderRepository, userPlanRepository, hotelRepository, stockService)
+	orderOrderService := order2.NewOrderService(orderRepository, hotelRepository, userRepository, stockService, pricingService, userPlanService, orderService, txManager)
+	orderHandler := handler.NewOrderHandler(responseHandler, orderOrderService, validate)
+	app := newFiberApp()
 	dependencies := &Dependencies{
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
+		OrderHandler:    orderHandler,
 		TokenMaker:      maker,
 		Config:          cfg,
-		server:          fiberApp,
+		server:          app,
 	}
 	return dependencies, nil
 }
@@ -67,6 +82,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 type Dependencies struct {
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
+	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
@@ -107,7 +123,7 @@ func newTokenMaker(cfg config.Config) (token.Maker, error) {
 }
 
 func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
-	return errors.NewErrorHandler(cfg.Debug, false)
+	return errors.NewErrorHandler(cfg.Debug, true)
 }
 
 func newFileTranslator() *i18n.FileTranslator {

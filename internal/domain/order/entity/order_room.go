@@ -6,14 +6,15 @@ import (
 	"time"
 )
 
-type OrderRoomStatus string
+type OrderRoomStatus int16
 
 const (
-	OrderRoomStatusInit OrderRoomStatus = "init"
+	OrderRoomStatusInit OrderRoomStatus = 0
 )
 
 type OrderRoom struct {
-	ID         uint
+	ID         int64
+	OrderID    int64
 	HotelID    int64
 	MerchantID int64
 	RoomTypeID int64

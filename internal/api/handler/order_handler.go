@@ -5,18 +5,18 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"study/internal/api/handler/dto"
 	"study/internal/api/response"
-	"study/internal/app"
-	"study/internal/assemble"
+	"study/internal/app/assemble"
+	"study/internal/app/order"
 	"study/util/context"
 )
 
 type OrderHandler struct {
 	res          *response.ResponseHandler
-	orderService *app.OrderService
+	orderService *order.OrderService
 	validator    *validator.Validate
 }
 
-func NewOrderHandler(base *response.ResponseHandler, orderService *app.OrderService, v *validator.Validate) *OrderHandler {
+func NewOrderHandler(base *response.ResponseHandler, orderService *order.OrderService, v *validator.Validate) *OrderHandler {
 	return &OrderHandler{
 		res:          base,
 		orderService: orderService,
@@ -27,7 +27,7 @@ func NewOrderHandler(base *response.ResponseHandler, orderService *app.OrderServ
 // CreateOrder 处理创建订单请求。
 func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	var req dto.CreateOrderRequest
-	if err := c.Bind().Body(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		return h.res.HandleError(c, err)
 	}
 
@@ -36,7 +36,7 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.validator.Struct(req); err != nil {
+	if err = h.validator.Struct(req); err != nil {
 		return h.res.HandleError(c, err)
 	}
 

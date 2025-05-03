@@ -2,31 +2,55 @@ package service
 
 import (
 	"fmt"
-	"strings"
+	"study/internal/domain/hotel/entity"
 	"study/internal/domain/hotel/repository"
 	"study/internal/domain/hotel/service"
 	repository2 "study/internal/domain/order/repository"
+	repository3 "study/internal/domain/user/repository"
+	"study/util/errors"
 	"time"
 )
 
 type OrderService struct {
 	OrderRepo    repository2.OrderRepository
-	userPlanRepo repository.UserPlanRepository
+	userPlanRepo repository3.UserPlanRepository
 	hotelRepo    repository.HotelRepository
-	stockService service.StockService
+	stockService *service.StockService
 }
 
-func NewOrderService(userPlanRepo repository.UserPlanRepository, hotelSkuRepo repository.HotelRepository) *OrderService {
-	return &OrderService{userPlanRepo: userPlanRepo, hotelRepo: hotelSkuRepo}
+func NewOrderService(
+	orderRepo repository2.OrderRepository,
+	userPlanRepo repository3.UserPlanRepository,
+	hotelSkuRepo repository.HotelRepository,
+	stockService *service.StockService,
+) *OrderService {
+	return &OrderService{
+		OrderRepo:    orderRepo,
+		userPlanRepo: userPlanRepo,
+		hotelRepo:    hotelSkuRepo,
+		stockService: stockService,
+	}
 }
 
-type Contact struct {
-	Name  string
-	Phone string
+func (s *OrderService) ValidateBookingDates(start, end time.Time) error {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	if start.Before(today) {
+		return errors.New(errors.ErrStartDatePast, "start date cannot be in the past")
+	}
+	if !end.After(start) {
+		return errors.New(errors.ErrStartDateDisorder, "end date must be after start date")
+	}
+	return nil
 }
 
-func removePhoneSpaces(phone string) string {
-	return strings.ReplaceAll(phone, " ", "")
+func (s *OrderService) CalculateQuantities(datePrices []entity.HotelSkuDayPrice, roomCount int, payType string) (totalNum, ticketNum int, err error) {
+	totalDays := len(datePrices)
+	totalNum = totalDays * roomCount
+	if payType == "ticket" {
+		ticketNum = totalNum
+	}
+	return totalNum, ticketNum, nil
 }
 
 // GetDatesNotLastDay 返回从startDate到endDate（不包括最后一天）的日期列表

@@ -9,15 +9,24 @@ import (
 )
 
 type Querier interface {
+	AddRoomDate(ctx context.Context, arg AddRoomDateParams) error
+	AddUserPlan(ctx context.Context, arg AddUserPlanParams) error
+	CheckBookingConflicts(ctx context.Context, arg CheckBookingConflictsParams) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
-	CreateAccount(ctx context.Context, arg CreateAccountParams) (UserAccount, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserAccount(ctx context.Context, arg CreateUserAccountParams) error
 	DeleteUser(ctx context.Context, id int64) error
+	FindAvailableRoomItems(ctx context.Context, arg FindAvailableRoomItemsParams) ([]int64, error)
+	FindRoomItemIDsByRoomTypeID(ctx context.Context, arg FindRoomItemIDsByRoomTypeIDParams) ([]int64, error)
+	FindSkuByID(ctx context.Context, id int64) (FindSkuByIDRow, error)
+	GetPrice(ctx context.Context, arg GetPriceParams) ([]HotelSkuDayPrice, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	SaveOrder(ctx context.Context, arg SaveOrderParams) (Order, error)
+	SaveOrderRooms(ctx context.Context, arg SaveOrderRoomsParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 

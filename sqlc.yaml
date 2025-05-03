@@ -11,5 +11,7 @@ sql:
         emit_json_tags: true
         emit_interface: true
         overrides:
-          - db_type: "tinyint"
-            go_type: "int"
+          - db_type: "smallint"
+            go_type: "int16"
+          - db_type: "pg_catalog.numeric"
+            go_type: "github.com/shopspring/decimal.Decimal"

@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-type OrderStatus string
+type OrderStatus int16
 
 const (
-	OrderStatusInit     OrderStatus = "init"
-	OrderStatusPaid     OrderStatus = "paid"
-	OrderStatusCheckin  OrderStatus = "checkin"
-	OrderStatusCheckout OrderStatus = "checkout"
-	OrderStatusRefunded OrderStatus = "refunded"
+	OrderStatusInit     OrderStatus = 0
+	OrderStatusPaid     OrderStatus = 1
+	OrderStatusCheckin  OrderStatus = 2
+	OrderStatusCheckout OrderStatus = 3
+	OrderStatusRefunded OrderStatus = 7
 )
 
 type Order struct {
@@ -42,7 +42,6 @@ type Order struct {
 // NewOrder 创建订单
 func NewOrder(userID int64, sku *entity.HotelSku, totalPrice decimal.Decimal, totalNum, totalTicket, roomNum int) (*Order, error) {
 	order := &Order{
-		ID:             0,
 		OrderSn:        orderSn("LJ"),
 		UserID:         userID,
 		HotelID:        sku.HotelID,
@@ -65,16 +64,6 @@ func (o *Order) AddRoom(sku *entity.HotelSku, roomItemIDs []int64) error {
 		return errors.New("xxx", "cannot add room to non-init order")
 	}
 
-	//for roomItemID := range roomItemIDs {
-	//	o.Rooms = append(o.Rooms, OrderRoom{
-	//		ID:         0,
-	//		RoomTypeID: sku.RoomTypeID,
-	//		RoomItemID: int64(roomItemID),
-	//		Price:      sku.SalesPrice,
-	//		Status:     OrderRoomStatusInit,
-	//		CreatedAt:  time.Now(),
-	//	})
-	//}
 	for i, roomItemID := range roomItemIDs {
 		o.Rooms[i] = OrderRoom{
 			ID:         0,

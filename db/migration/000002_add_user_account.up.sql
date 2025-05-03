@@ -10,3 +10,5 @@ CREATE TABLE "public"."user_account" (
 
 -- 重新创建唯一索引，防止重复
 CREATE INDEX "idx_user_id" ON "public"."user_account" ("user_id");
+
+COMMENT ON TABLE user_account IS '用户账户';

@@ -18,13 +18,18 @@ func Setup(app *fiber.App, deps *di.Dependencies) {
 	v1.Post("/signup", deps.UserHandler.CreateUser)
 	v1.Post("/login", deps.UserHandler.Login)
 
-	user := v1.Group("user", middleware.Auth(deps.ResponseHandler, deps.TokenMaker)) // 仅作用于需要认证的接口
+	user := v1.Group("user", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
+	order := v1.Group("order", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
 	// 用户路由
 	userRoutes(user, deps.UserHandler)
-
+	orderRoutes(order, deps.OrderHandler)
 }
 
 // userRoutes 配置用户相关的路由。
 func userRoutes(user fiber.Router, h *handler.UserHandler) {
 	user.Post("/info", h.Info)
+}
+
+func orderRoutes(order fiber.Router, h *handler.OrderHandler) {
+	order.Post("/create", h.CreateOrder)
 }

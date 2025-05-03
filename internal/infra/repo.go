@@ -1,9 +1,9 @@
-package repository
+package infra
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/lib/pq"
-	er "study/util/errors"
 )
 
 // 检查是否为唯一键冲突错误（数据库特定实现）
@@ -14,20 +14,13 @@ import (
 
 // IsNotFoundError 判断是否为"未找到"错误
 func IsNotFoundError(err error) bool {
-	var domainErr *er.DomainError
-	if errors.As(err, &domainErr) {
-		return domainErr.Code == er.ErrUserNotFound
-	}
-	return false
+	return errors.Is(err, sql.ErrNoRows)
 }
 
-func isDuplicateKeyError(err error) bool {
+func IsDuplicateKeyError(err error) bool {
 	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
-		switch pqErr.Code.Name() {
-		case "unique_violation":
-			return true
-		}
+	if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		return true
 	}
 	return false
 }

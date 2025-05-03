@@ -27,3 +27,7 @@ SELECT * FROM "user" LIMIT $1 OFFSET $2;
 
 -- name: CountUsers :one
 SELECT COUNT(*) FROM "user";
+
+-- name: CreateUserAccount :exec
+INSERT INTO user_account (user_id, frozen_balance, balance)
+VALUES ($1, $2, $3);

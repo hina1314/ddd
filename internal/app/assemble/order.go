@@ -2,18 +2,11 @@ package assemble
 
 import (
 	"study/internal/api/handler/dto"
+	"study/internal/domain/user/entity"
 	"study/token"
+	"study/util/errors"
 	"time"
 )
-
-type contact struct {
-	Name  string
-	Phone string
-}
-
-type RoomContact struct {
-	Guests []contact
-}
 
 type CreateOrderCommand struct {
 	UserID    int64
@@ -23,30 +16,35 @@ type CreateOrderCommand struct {
 	Number    int
 	PriceType int8
 	PayType   string
-	Contact   []RoomContact
+	Contact   []entity.RoomContact
 }
 
 func NewCreateOrderCommand(req dto.CreateOrderRequest, payload *token.Payload) (*CreateOrderCommand, error) {
 	const layout = "2006-01-02"
 	start, err := time.ParseInLocation(layout, req.StartDate, time.Local)
 	if err != nil {
-		return nil, err
+		return nil, errors.New(errors.ErrDateFormat, "incorrect date format")
 	}
 	end, err := time.ParseInLocation(layout, req.EndDate, time.Local)
 	if err != nil {
-		return nil, err
+		return nil, errors.New(errors.ErrDateFormat, "incorrect date format")
 	}
 
-	contacts := make([]RoomContact, len(req.Contact))
+	roomContacts := make([]entity.RoomContact, req.Number) // 每间房一个 RoomContact
+	for i := 0; i < req.Number; i++ {
+		roomContacts[i] = entity.RoomContact{}
+	}
+
+	contacts := make([]entity.RoomContact, len(req.Contact))
 	for i, room := range req.Contact {
-		guests := make([]contact, len(room.Guests))
+		guests := make([]entity.Contact, len(room.Guests))
 		for j, g := range room.Guests {
-			guests[j] = contact{
+			guests[j] = entity.Contact{
 				Name:  g.Name,
 				Phone: g.Phone,
 			}
 		}
-		contacts[i] = RoomContact{Guests: guests}
+		contacts[i] = entity.RoomContact{Guests: guests}
 	}
 
 	return &CreateOrderCommand{

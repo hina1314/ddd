@@ -3,16 +3,14 @@ package model
 import (
 	"context"
 	"database/sql"
-	"fmt"
 )
 
-type TxKey struct{} // 唯一的事务键
+type txKey struct{} // 唯一的事务键
 
 // TxManager 定义事务管理接口
 type TxManager interface {
-	Querier
-	Begin(ctx context.Context) (Tx, error)
-	ExecTx(ctx context.Context, fn func(Tx) error) error
+	Querier(ctx context.Context) Querier
+	Begin(ctx context.Context) (Tx, context.Context, error)
 }
 
 // Tx 定义事务操作接口
@@ -41,15 +39,18 @@ func NewStore(db *sql.DB) TxManager {
 	}
 }
 
-func (s *SQLStore) Begin(ctx context.Context) (Tx, error) {
+func (s *SQLStore) Begin(ctx context.Context) (Tx, context.Context, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &SQLTransaction{
+
+	x := &SQLTransaction{
 		Queries: New(tx),
 		tx:      tx,
-	}, nil
+	}
+	ctx = withTx(ctx, x)
+	return x, ctx, nil
 }
 
 func (t *SQLTransaction) Commit() error {
@@ -60,19 +61,14 @@ func (t *SQLTransaction) Rollback() error {
 	return t.tx.Rollback()
 }
 
-func (m *SQLStore) ExecTx(ctx context.Context, fn func(Tx) error) error {
-	tx, err := m.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("start transaction: %w", err)
+func (s *SQLStore) Querier(ctx context.Context) Querier {
+	if tx, ok := ctx.Value(txKey{}).(Tx); ok {
+		return tx
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	return s
+}
 
-	if err = fn(tx); err != nil {
-		return err
-	}
-	return tx.Commit()
+func withTx(ctx context.Context, tx Tx) context.Context {
+	ctx = context.WithValue(ctx, txKey{}, tx)
+	return ctx
 }
