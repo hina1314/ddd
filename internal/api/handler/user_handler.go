@@ -57,7 +57,7 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.SuccessResponse(c, "user.create", newUser)
+	return h.res.Success(c, "user.create", newUser)
 }
 
 func (h *UserHandler) Login(c fiber.Ctx) error {
@@ -90,7 +90,7 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.SuccessResponse(c, "user.login", user)
+	return h.res.Success(c, "user.login", user)
 }
 
 func (h *UserHandler) Info(c fiber.Ctx) error {
@@ -104,7 +104,7 @@ func (h *UserHandler) Info(c fiber.Ctx) error {
 		return err
 	}
 
-	return h.res.SuccessResponse(c, "user.info", user)
+	return h.res.Success(c, "user.info", user)
 }
 
 //func (h *UserHandler) Update(c fiber.Ctx) error {

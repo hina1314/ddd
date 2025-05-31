@@ -9,29 +9,22 @@ import (
 	"study/util/i18n"
 )
 
-// SuccessResponse 定义成功响应的结构。
-type SuccessResponse struct {
-	Code int         `json:"code"`
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data"`
+// Response 定义响应的结构。
+type Response struct {
+	Code  interface{}        `json:"code"` // 成功是 int 0，失败是 string errorCode
+	Msg   string             `json:"msg"`  // 已翻译好的消息
+	Data  interface{}        `json:"data,omitempty"`
+	Debug *errors.ErrorTrace `json:"debug,omitempty"`
 }
 
-func (h *ResponseHandler) SuccessResponse(c fiber.Ctx, msg string, data interface{}) error {
+func (h *ResponseHandler) Success(c fiber.Ctx, msg string, data interface{}) error {
 	message := h.TranslationService.T(c.Context(), msg, nil)
-	response := SuccessResponse{
-		Code: fiber.StatusOK,
+	response := Response{
+		Code: 0,
 		Msg:  message,
 		Data: data,
 	}
 	return c.Status(fiber.StatusOK).JSON(response)
-}
-
-type errorResponse struct {
-	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
-	Debug *errors.ErrorTrace `json:"debug,omitempty"`
 }
 
 // ResponseHandler 提供 HTTP 处理程序的通用方法。
@@ -62,7 +55,7 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 		switch domainErr.Code {
 		case errors.ErrUserAlreadyExists:
 			statusCode = http.StatusConflict
-		case errors.ErrInvalidInput:
+		case errors.ErrInvalidInput, errors.ErrUserInfoIncorrect:
 			statusCode = http.StatusBadRequest
 		case errors.ErrTxError, errors.ErrDatabaseError:
 			statusCode = http.StatusInternalServerError
@@ -88,14 +81,10 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 	// 获取调试追踪
 	debugTrace := h.ErrorHandler.GetErrorTrace(domainErr)
 
-	response := errorResponse{
-		Error: struct {
-			Code    string `json:"code"`
-			Message string `json:"message"`
-		}{
-			Code:    string(domainErr.Code),
-			Message: message,
-		},
+	response := Response{
+		Code:  domainErr.Code,
+		Msg:   message,
+		Data:  nil,
 		Debug: debugTrace,
 	}
 

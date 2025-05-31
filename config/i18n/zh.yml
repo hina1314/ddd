@@ -8,6 +8,7 @@ errors.ERROR_DATE_FORMAT: "日期格式不正确！"
 # user errors
 errors.USER_UNAUTHORIZED: "请登录！"
 errors.USER_NOT_FOUND: "未找到用户!"
+errors.USER_INFO_INCORRECT: "用户信息不正确！"
 errors.USER_ALREADY_EXISTS: "用户已存在!"
 errors.USER_PHONE_FORMAT: "手机号格式不正确！"
 errors.USER_EMAIL_FORMAT: "邮箱格式不正确！"

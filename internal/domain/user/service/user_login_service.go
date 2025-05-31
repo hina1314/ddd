@@ -42,7 +42,7 @@ func (s *UserLoginService) AuthenticateUser(ctx context.Context, phone, email, p
 
 	err = util.CheckPassword(password, user.Password)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrUserNotFound, "incorrect password")
+		return nil, errors.Wrap(err, errors.ErrUserInfoIncorrect, "incorrect password")
 	}
 
 	return user, nil

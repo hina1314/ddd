@@ -49,5 +49,5 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.SuccessResponse(c, "order.create", res)
+	return h.res.Success(c, "order.create", res)
 }

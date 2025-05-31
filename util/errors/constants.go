@@ -15,6 +15,7 @@ const (
 const (
 	ErrUnauthorized      ErrorCode = "USER_UNAUTHORIZED"
 	ErrUserNotFound      ErrorCode = "USER_NOT_FOUND"
+	ErrUserInfoIncorrect ErrorCode = "USER_INFO_INCORRECT"
 	ErrUserAlreadyExists ErrorCode = "USER_ALREADY_EXISTS"
 	ErrMinLength         ErrorCode = "USER_MIN_LENGTH"
 	ErrPhoneEmpty        ErrorCode = "USER_PHONE_EMPTY"
