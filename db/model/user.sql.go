@@ -7,6 +7,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/shopspring/decimal"
 )
@@ -29,10 +30,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type CreateUserParams struct {
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Phone    string         `json:"phone"`
+	Email    sql.NullString `json:"email"`
+	Username string         `json:"username"`
+	Password string         `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -86,7 +87,7 @@ const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, phone, email, username, password, avatar, created_at, updated_at, deleted_at FROM "user" WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
@@ -214,11 +215,11 @@ WHERE id = $1
 `
 
 type UpdateUserParams struct {
-	ID       int64  `json:"id"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	ID       int64          `json:"id"`
+	Phone    string         `json:"phone"`
+	Email    sql.NullString `json:"email"`
+	Username string         `json:"username"`
+	Password string         `json:"password"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {

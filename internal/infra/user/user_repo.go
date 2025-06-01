@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"study/db/model"
 	"study/internal/domain/user/entity"
 	"study/internal/domain/user/repository"
@@ -22,8 +23,7 @@ func NewUserRepository(db model.TxManager) repository.UserRepository {
 
 // **通用转换方法：model.User → user.User**
 func (r *UserRepositoryImpl) toDomain(u model.User) (*entity.User, error) {
-	emailVO := entity.NewEmail(u.Email)
-
+	emailVO := entity.NewEmail(u.Email.String)
 	var deletedAt *time.Time
 	if u.DeletedAt.Valid {
 		deletedAt = &u.DeletedAt.Time
@@ -67,7 +67,7 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id int64) (*entity.Use
 }
 
 func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	u, err := r.db.Querier(ctx).GetUserByEmail(ctx, email)
+	u, err := r.db.Querier(ctx).GetUserByEmail(ctx, toNullString(email))
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *entity.User) error {
 	q := r.db.Querier(ctx)
 	arg := model.CreateUserParams{
 		Phone:    u.Phone,
-		Email:    u.Email.String(),
+		Email:    emailToNullString(u.Email),
 		Username: u.Username,
 		Password: u.Password,
 	}
@@ -113,7 +113,7 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, u *entity.User) error {
 	arg := model.UpdateUserParams{
 		ID:       u.ID,
 		Phone:    u.Phone,
-		Email:    u.Email.String(),
+		Email:    emailToNullString(u.Email),
 		Username: u.Username,
 		Password: u.Password,
 	}
@@ -149,4 +149,18 @@ func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*en
 		return nil, 0, err
 	}
 	return result, int(count), nil
+}
+
+func emailToNullString(email entity.Email) sql.NullString {
+	if email.IsNil() {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: email.String(), Valid: true}
+}
+
+func toNullString(str string) sql.NullString {
+	if str == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: str, Valid: true}
 }

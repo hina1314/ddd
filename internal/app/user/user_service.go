@@ -13,6 +13,7 @@ import (
 type UserService struct {
 	userRegisterService *service.UserRegisterService
 	userLoginService    *service.UserLoginService
+	userUpdateService   *service.UserUpdateService
 	userRepo            repository.UserRepository
 	cfg                 config.Config
 	txManager           model.TxManager
@@ -22,6 +23,7 @@ type UserService struct {
 func NewUserService(
 	userRegisterService *service.UserRegisterService,
 	userLoginService *service.UserLoginService,
+	userUpdateService *service.UserUpdateService,
 	userRepo repository.UserRepository,
 	cfg config.Config,
 	txManager model.TxManager,
@@ -30,6 +32,7 @@ func NewUserService(
 	return &UserService{
 		userRegisterService: userRegisterService,
 		userLoginService:    userLoginService,
+		userUpdateService:   userUpdateService,
 		userRepo:            userRepo,
 		cfg:                 cfg,
 		txManager:           txManager,

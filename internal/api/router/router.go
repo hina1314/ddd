@@ -28,6 +28,7 @@ func Setup(app *fiber.App, deps *di.Dependencies) {
 // userRoutes 配置用户相关的路由。
 func userRoutes(user fiber.Router, h *handler.UserHandler) {
 	user.Post("/info", h.Info)
+	user.Post("/update", h.Update)
 }
 
 func orderRoutes(order fiber.Router, h *handler.OrderHandler) {

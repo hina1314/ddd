@@ -189,15 +189,15 @@ type OrderRoom struct {
 
 // 用户
 type User struct {
-	ID        int64        `json:"id"`
-	Phone     string       `json:"phone"`
-	Email     string       `json:"email"`
-	Username  string       `json:"username"`
-	Password  string       `json:"password"`
-	Avatar    string       `json:"avatar"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
+	ID        int64          `json:"id"`
+	Phone     string         `json:"phone"`
+	Email     sql.NullString `json:"email"`
+	Username  string         `json:"username"`
+	Password  string         `json:"password"`
+	Avatar    string         `json:"avatar"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt sql.NullTime   `json:"deleted_at"`
 }
 
 // 用户账户

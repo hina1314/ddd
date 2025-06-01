@@ -6,6 +6,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -20,7 +21,7 @@ type Querier interface {
 	FindRoomItemIDsByRoomTypeID(ctx context.Context, arg FindRoomItemIDsByRoomTypeIDParams) ([]int64, error)
 	FindSkuByID(ctx context.Context, id int64) (FindSkuByIDRow, error)
 	GetPrice(ctx context.Context, arg GetPriceParams) ([]HotelSkuDayPrice, error)
-	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByEmail(ctx context.Context, email sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)

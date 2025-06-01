@@ -59,13 +59,23 @@ func (u *User) ChangePassword(newPasswordHash string) {
 
 // Email 值对象
 type Email struct {
-	value string
+	value *string
 }
 
 func NewEmail(value string) Email {
-	return Email{value: value}
+	if value == "" {
+		return Email{value: nil}
+	}
+	return Email{value: &value}
 }
 
 func (e Email) String() string {
-	return e.value
+	if e.value == nil {
+		return ""
+	}
+	return *e.value
+}
+
+func (e Email) IsNil() bool {
+	return e.value == nil
 }

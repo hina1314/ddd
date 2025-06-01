@@ -73,6 +73,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		// user
 		userService.NewUserLoginService,
 		userService.NewUserRegisterService,
+		userService.NewUserUpdateService,
 		userService.NewUserPlanService,
 		// hotel
 		hotelService.NewPricingService,

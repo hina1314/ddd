@@ -48,11 +48,12 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	userRepository := user.NewUserRepository(txManager)
 	userRegisterService := service.NewUserRegisterService(userRepository)
 	userLoginService := service.NewUserLoginService(userRepository)
+	userUpdateService := service.NewUserUpdateService(userRepository)
 	maker, err := newTokenMaker(cfg)
 	if err != nil {
 		return nil, err
 	}
-	userService := user2.NewUserService(userRegisterService, userLoginService, userRepository, cfg, txManager, maker)
+	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, txManager, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
 	orderRepository := order.NewOrderRepository(txManager)
@@ -123,7 +124,7 @@ func newTokenMaker(cfg config.Config) (token.Maker, error) {
 }
 
 func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
-	return errors.NewErrorHandler(cfg.Debug, true)
+	return errors.NewErrorHandler(cfg.Debug, false)
 }
 
 func newFileTranslator() *i18n.FileTranslator {
