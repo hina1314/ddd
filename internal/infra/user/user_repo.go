@@ -118,7 +118,14 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, u *entity.User) error {
 		Password: u.Password,
 	}
 
-	return r.db.Querier(ctx).UpdateUser(ctx, arg)
+	err := r.db.Querier(ctx).UpdateUser(ctx, arg)
+	if err != nil {
+		if infra.IsDuplicateKeyError(err) {
+			return errors.New(errors.ErrUserAlreadyExists, "User already exists")
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id int64) error {

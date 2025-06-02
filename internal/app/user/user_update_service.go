@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"study/internal/api/handler/dto"
 	"study/internal/app/assemble"
 	"study/internal/domain/user/entity"
@@ -33,6 +34,9 @@ func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCo
 
 	record, err := s.userUpdateService.UpdateUser(ctx, user)
 	if err != nil {
+		if err == sql.ErrNoRows {
+
+		}
 		return nil, err
 	}
 

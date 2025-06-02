@@ -53,6 +53,8 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 		domainErr = errors.ValidationErrorToDomainError(validationErrs[0])
 	} else if stdErr.As(err, &domainErr) {
 		switch domainErr.Code {
+		case errors.ErrUnauthorized:
+			statusCode = http.StatusUnauthorized
 		case errors.ErrUserAlreadyExists:
 			statusCode = http.StatusConflict
 		case errors.ErrInvalidInput, errors.ErrUserInfoIncorrect:
