@@ -1,24 +1,33 @@
--- name: SaveOrder :one
-INSERT INTO "order" (
-    order_sn, user_id, hotel_id, merchant_id, total_price, total_number,
-    total_pay_ticket, status, created_at, expire_time
-)
-VALUES (
-           @order_sn::VARCHAR, @user_id::BIGINT, @hotel_id::BIGINT, @merchant_id::BIGINT,
-           @total_price::DECIMAL, @total_number::INT, @total_pay_ticket::INT, @status::SMALLINT,
-           @created_at::TIMESTAMP, @expire_time::TIMESTAMP
-       )
-RETURNING *;
+-- name: CreateOrder :one
+INSERT INTO "order" (order_no, user_id, status, total_amount, paid_at)
+VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;
 
--- name: SaveOrderRooms :exec
-INSERT INTO order_room (
-     order_id, room_type_id, room_item_id, price, status, created_at
-)
-VALUES (
-           unnest(@order_id::BIGINT[]),
-           unnest(@room_type_id::BIGINT[]),
-           unnest(@room_item_id::BIGINT[]),
-           unnest(@price::DECIMAL[]),
-           unnest(@status::SMALLINT[]),
-           unnest(@created_at::TIMESTAMP[])
-       );
+-- name: GetOrderByID :one
+SELECT * FROM "order"
+WHERE id = $1;
+
+-- name: GetOrderByOrderNo :one
+SELECT * FROM "order"
+WHERE order_no = $1;
+
+-- name: ListOrdersByUserID :many
+SELECT * FROM "order"
+WHERE user_id = $1
+ORDER BY created_at DESC
+    LIMIT $2 OFFSET $3;
+
+-- name: UpdateOrderStatusByOrderNo :exec
+UPDATE "order"
+SET status = $1
+WHERE order_no = $2;
+
+-- name: UpdatePaidAtAndStatusByOrderNo :exec
+UPDATE "order"
+SET paid_at = $1,
+    status = $2
+WHERE order_no = $3;
+
+-- name: DeleteOrderByID :exec
+DELETE FROM "order"
+WHERE id = $1;

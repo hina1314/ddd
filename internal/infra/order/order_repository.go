@@ -2,76 +2,182 @@ package order
 
 import (
 	"context"
-	"github.com/shopspring/decimal"
-	"study/db/model"
-	"study/internal/domain/order/entity"
-	"study/internal/domain/order/repository"
-	"study/util/errors"
-	"time"
+	"database/sql"
+	"study/internal/domain/order"
 )
 
-type OrderRepositoryImpl struct {
-	db model.TxManager
+type OrderRepository struct {
+	db *sql.DB
 }
 
-func NewOrderRepository(db model.TxManager) repository.OrderRepository {
-	return &OrderRepositoryImpl{
-		db: db,
-	}
+func NewOrderRepository(db *sql.DB) *OrderRepository {
+	return &OrderRepository{db: db}
 }
 
-func (o *OrderRepositoryImpl) Save(ctx context.Context, order *entity.Order) error {
-	q := o.db.Querier(ctx)
-
-	// Save the order
-	record, err := q.SaveOrder(ctx, model.SaveOrderParams{
-		OrderSn:        order.OrderSn,
-		UserID:         order.UserID,
-		HotelID:        order.HotelID,
-		MerchantID:     order.MerchantID,
-		TotalPrice:     order.TotalPrice,
-		TotalNumber:    int32(order.TotalNumber),
-		TotalPayTicket: int32(order.TotalPayTicket),
-		Status:         int16(order.Status),
-		CreatedAt:      order.CreatedAt,
-		ExpireTime:     order.ExpireTime,
-	})
+func (r *OrderRepository) Create(ctx context.Context, o *order.Order) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.New("save_order_error", "failed to save order: "+err.Error())
+		return err
+	}
+	defer tx.Rollback()
+
+	// 插入订单
+	query := `
+		INSERT INTO "order" (order_no, user_id, status, total_amount, expire_at, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+
+	err = tx.QueryRowContext(ctx, query,
+		o.OrderNo, o.UserID, o.Status, o.TotalAmount, o.ExpireAt, o.CreatedAt,
+	).Scan(&o.ID)
+	if err != nil {
+		return err
 	}
 
-	order.ID = record.ID
-	// Save order rooms (if any)
-	if len(order.Rooms) > 0 {
-		// Prepare arrays for bulk insert
-		orderIDs := make([]int64, len(order.Rooms))
-		roomTypeIDs := make([]int64, len(order.Rooms))
-		roomItemIDs := make([]int64, len(order.Rooms))
-		prices := make([]decimal.Decimal, len(order.Rooms))
-		statuses := make([]int16, len(order.Rooms))
-		createdAts := make([]time.Time, len(order.Rooms))
-
-		for i, room := range order.Rooms {
-			orderIDs[i] = order.ID // Link to the saved order
-			roomTypeIDs[i] = room.RoomTypeID
-			roomItemIDs[i] = room.RoomItemID
-			prices[i] = room.Price // Convert decimal.Decimal to float64
-			statuses[i] = int16(room.Status)
-			createdAts[i] = room.CreatedAt
-		}
-
-		err = q.SaveOrderRooms(ctx, model.SaveOrderRoomsParams{
-			OrderID:    orderIDs,
-			RoomTypeID: roomTypeIDs,
-			RoomItemID: roomItemIDs,
-			Price:      prices,
-			Status:     statuses,
-			CreatedAt:  createdAts,
-		})
+	// 插入订单项
+	for i := range o.Items {
+		itemQuery := `
+			INSERT INTO order_item (order_id, product_id, quantity, unit_price)
+			VALUES ($1, $2, $3, $4)
+			RETURNING id
+		`
+		err = tx.QueryRowContext(ctx, itemQuery,
+			o.ID, o.Items[i].ProductID, o.Items[i].Quantity, o.Items[i].UnitPrice,
+		).Scan(&o.Items[i].ID)
 		if err != nil {
-			return errors.New("save_order_rooms_error", "failed to save order rooms: "+err.Error())
+			return err
 		}
+		o.Items[i].OrderID = o.ID
 	}
 
-	return nil
+	return tx.Commit()
+}
+
+func (r *OrderRepository) GetByID(ctx context.Context, id int64) (*order.Order, error) {
+	query := `
+		SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at
+		FROM "order"
+		WHERE id = $1
+	`
+
+	var o order.Order
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&o.ID, &o.OrderNo, &o.UserID, &o.Status, &o.TotalAmount,
+		&o.PaidAt, &o.ExpireAt, &o.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, order.ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	// 获取订单项
+	items, err := r.getOrderItems(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	o.Items = items
+
+	return &o, nil
+}
+
+func (r *OrderRepository) getOrderItems(ctx context.Context, orderID int64) ([]order.OrderItem, error) {
+	query := `
+		SELECT id, order_id, product_id, quantity, unit_price
+		FROM order_item
+		WHERE order_id = $1
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []order.OrderItem
+	for rows.Next() {
+		var item order.OrderItem
+		err := rows.Scan(
+			&item.ID, &item.OrderID, &item.ProductID, &item.Quantity, &item.UnitPrice,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+func (r *OrderRepository) GetByOrderNo(ctx context.Context, orderNo string) (*order.Order, error) {
+	query := `
+		SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at
+		FROM "order"
+		WHERE order_no = $1
+	`
+
+	var o order.Order
+	err := r.db.QueryRowContext(ctx, query, orderNo).Scan(
+		&o.ID, &o.OrderNo, &o.UserID, &o.Status, &o.TotalAmount,
+		&o.PaidAt, &o.ExpireAt, &o.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, order.ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	// 获取订单项
+	items, err := r.getOrderItems(ctx, o.ID)
+	if err != nil {
+		return nil, err
+	}
+	o.Items = items
+
+	return &o, nil
+}
+
+func (r *OrderRepository) Update(ctx context.Context, o *order.Order) error {
+	query := `
+		UPDATE "order" 
+		SET status = $1, paid_at = $2
+		WHERE id = $3
+	`
+
+	_, err := r.db.ExecContext(ctx, query, o.Status, o.PaidAt, o.ID)
+	return err
+}
+
+func (r *OrderRepository) GetByUserID(ctx context.Context, userID int64, offset, limit int) ([]*order.Order, error) {
+	query := `
+		SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at
+		FROM "order"
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []*order.Order
+	for rows.Next() {
+		var o order.Order
+		err := rows.Scan(
+			&o.ID, &o.OrderNo, &o.UserID, &o.Status, &o.TotalAmount,
+			&o.PaidAt, &o.ExpireAt, &o.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, &o)
+	}
+
+	return orders, nil
 }

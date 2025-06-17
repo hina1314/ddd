@@ -16,9 +16,9 @@ type OrderHandler struct {
 	validator    *validator.Validate
 }
 
-func NewOrderHandler(base *response.ResponseHandler, orderService *order.OrderService, v *validator.Validate) *OrderHandler {
+func NewOrderHandler(res *response.ResponseHandler, orderService *order.OrderService, v *validator.Validate) *OrderHandler {
 	return &OrderHandler{
-		res:          base,
+		res:          res,
 		orderService: orderService,
 		validator:    v,
 	}
