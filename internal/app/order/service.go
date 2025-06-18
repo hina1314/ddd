@@ -45,19 +45,19 @@ func (s *ApplicationService) CreateOrder(ctx context.Context, req CreateOrderReq
 
 	// 验证商品并构建订单项
 	for _, item := range req.Items {
-		product, err := s.productRepo.GetByID(ctx, item.ProductID)
+		found, err := s.productRepo.GetByID(ctx, item.ProductID)
 		if err != nil {
 			return nil, err
 		}
 
-		if !product.IsAvailable() {
+		if !found.IsAvailable() {
 			return nil, product.ErrProductNotFound
 		}
 
 		orderItem := order.OrderItem{
 			ProductID: item.ProductID,
 			Quantity:  item.Quantity,
-			UnitPrice: product.Price,
+			UnitPrice: found.Price,
 		}
 		orderItems = append(orderItems, orderItem)
 	}

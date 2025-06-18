@@ -3,14 +3,15 @@ package product
 import (
 	"context"
 	"database/sql"
+	"study/db/model"
 	"study/internal/domain/product"
 )
 
 type ProductRepository struct {
-	db *sql.DB
+	db model.TxManager
 }
 
-func NewProductRepository(db *sql.DB) *ProductRepository {
+func NewProductRepository(db model.TxManager) product.Repository {
 	return &ProductRepository{db: db}
 }
 

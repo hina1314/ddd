@@ -2,6 +2,7 @@ package order
 
 import (
 	"errors"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -30,11 +31,11 @@ type Order struct {
 
 // OrderItem 订单项
 type OrderItem struct {
-	ID        int64   `json:"id"`
-	OrderID   int64   `json:"order_id"`
-	ProductID int64   `json:"product_id"`
-	Quantity  int     `json:"quantity"`
-	UnitPrice float64 `json:"unit_price"`
+	ID        int64           `json:"id"`
+	OrderID   int64           `json:"order_id"`
+	ProductID int64           `json:"product_id"`
+	Quantity  int             `json:"quantity"`
+	UnitPrice decimal.Decimal `json:"unit_price"`
 }
 
 var (
@@ -44,13 +45,13 @@ var (
 )
 
 // CalculateTotal 计算订单总金额
-func (o *Order) CalculateTotal() {
-	total := 0.0
-	for _, item := range o.Items {
-		total += item.UnitPrice * float64(item.Quantity)
-	}
-	o.TotalAmount = total
-}
+//func (o *Order) CalculateTotal() {
+//	total := 0.0
+//	for _, item := range o.Items {
+//		total += item.UnitPrice * float64(item.Quantity)
+//	}
+//	o.TotalAmount = total
+//}
 
 // CanPay 检查是否可以支付
 func (o *Order) CanPay() bool {

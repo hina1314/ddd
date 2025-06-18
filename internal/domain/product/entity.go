@@ -31,7 +31,7 @@ type SKU struct {
 
 // IsAvailable 检查商品是否可用
 func (p *Product) IsAvailable() bool {
-	return p.ID > 0 && p.Name != "" && p.Price > 0
+	return p.ID > 0 && p.Name != "" && p.Price.IsPositive()
 }
 
 // HasStock 检查SKU是否有库存

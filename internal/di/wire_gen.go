@@ -14,13 +14,11 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
-	order2 "study/internal/app/order"
+	product3 "study/internal/app/product"
 	user2 "study/internal/app/user"
-	service2 "study/internal/domain/hotel/service"
-	service3 "study/internal/domain/order/service"
+	product2 "study/internal/domain/product"
 	"study/internal/domain/user/service"
-	"study/internal/infra/hotel"
-	"study/internal/infra/order"
+	"study/internal/infra/product"
 	"study/internal/infra/user"
 	"study/token"
 	"study/util/errors"
@@ -56,20 +54,15 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, txManager, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
-	orderRepository := order.NewOrderRepository(txManager)
-	hotelRepository := hotel.NewHotelRepository(txManager)
-	stockService := service2.NewStockService(hotelRepository)
-	pricingService := service2.NewPricingService()
-	userPlanRepository := user.NewUserPlanRepo(txManager)
-	userPlanService := service.NewUserPlanService(userPlanRepository)
-	orderService := service3.NewOrderService(orderRepository, userPlanRepository, hotelRepository, stockService)
-	orderOrderService := order2.NewOrderService(orderRepository, hotelRepository, userRepository, stockService, pricingService, userPlanService, orderService, txManager)
-	orderHandler := handler.NewOrderHandler(responseHandler, orderOrderService, validate)
+	repository := product.NewProductRepository(txManager)
+	productService := product2.NewService(repository)
+	appService := product3.NewAppService(productService, repository)
+	productHandler := handler.NewProductHandler(responseHandler, appService, validate)
 	app := newFiberApp()
 	dependencies := &Dependencies{
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
-		OrderHandler:    orderHandler,
+		ProductHandler:  productHandler,
 		TokenMaker:      maker,
 		Config:          cfg,
 		server:          app,
@@ -83,7 +76,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 type Dependencies struct {
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
-	OrderHandler    *handler.OrderHandler
+	ProductHandler  *handler.ProductHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
