@@ -16,17 +16,19 @@ type ProductListRequest struct {
 }
 
 type ProductListResponse struct {
-	Data  []ProductList
-	Total int `json:"total" validate:"required,numeric,gt=0"`
+	Data  []ProductList `json:"data"`
+	Total int           `json:"total" validate:"required,numeric,gt=0"`
 }
 
 type ProductList struct {
 	ID          int64           `json:"id" validate:"required,numeric"`
+	Name        string          `json:"name" validate:"required"`
 	Description string          `json:"description"`
 	Price       decimal.Decimal `json:"price" validate:"required,gt=0"`
+	Image       string          `json:"image" validate:"required"`
 }
 
 type Pagination struct {
-	Page     int `json:"page" validate:"required,numeric,gt=0"`
-	PageSize int `json:"page_size" validate:"required,numeric,gt=0"`
+	Page     int32 `json:"page" validate:"required,numeric,gt=0"`
+	PageSize int32 `json:"page_size" validate:"required,numeric,gt=0"`
 }

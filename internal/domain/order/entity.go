@@ -6,12 +6,19 @@ import (
 	"time"
 )
 
+var (
+	ErrOrderNotFound      = errors.New("order not found")
+	ErrInvalidOrderStatus = errors.New("invalid order status")
+	ErrOrderExpired       = errors.New("order expired")
+)
+
 // OrderStatus 订单状态
 type OrderStatus int
 
 const (
 	StatusPending   OrderStatus = iota // 待支付
 	StatusPaid                         // 已支付
+	StatusSent                         // 已发货
 	StatusCancelled                    // 已取消
 	StatusExpired                      // 已过期
 )
@@ -38,11 +45,23 @@ type OrderItem struct {
 	UnitPrice decimal.Decimal `json:"unit_price"`
 }
 
-var (
-	ErrOrderNotFound      = errors.New("order not found")
-	ErrInvalidOrderStatus = errors.New("invalid order status")
-	ErrOrderExpired       = errors.New("order expired")
-)
+type Cart struct {
+	ID       int64           `json:"id"`
+	UserID   int64           `json:"user_id"`
+	SkuID    int64           `json:"sku_id"`
+	Quantity int32           `json:"quantity"`
+	Price    decimal.Decimal `json:"price"`
+}
+
+func NewCart(userID, skuID int64, quantity int32) *Cart {
+	return &Cart{
+		ID:       0,
+		UserID:   userID,
+		SkuID:    skuID,
+		Quantity: quantity,
+		Price:    decimal.Decimal{},
+	}
+}
 
 // CalculateTotal 计算订单总金额
 //func (o *Order) CalculateTotal() {

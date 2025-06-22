@@ -14,10 +14,13 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
+	order3 "study/internal/app/order"
 	product3 "study/internal/app/product"
 	user2 "study/internal/app/user"
+	order2 "study/internal/domain/order"
 	product2 "study/internal/domain/product"
 	"study/internal/domain/user/service"
+	"study/internal/infra/order"
 	"study/internal/infra/product"
 	"study/internal/infra/user"
 	"study/token"
@@ -58,11 +61,16 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	productService := product2.NewService(repository)
 	appService := product3.NewAppService(productService, repository)
 	productHandler := handler.NewProductHandler(responseHandler, appService, validate)
+	orderRepository := order.NewOrderRepository(txManager)
+	orderService := order2.NewService(orderRepository)
+	orderAppService := order3.NewAppService(orderService, orderRepository, productService, repository)
+	orderHandler := handler.NewOrderHandler(responseHandler, orderAppService, validate)
 	app := newFiberApp()
 	dependencies := &Dependencies{
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
 		ProductHandler:  productHandler,
+		OrderHandler:    orderHandler,
 		TokenMaker:      maker,
 		Config:          cfg,
 		server:          app,
@@ -77,6 +85,7 @@ type Dependencies struct {
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
 	ProductHandler  *handler.ProductHandler
+	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段

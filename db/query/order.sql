@@ -31,3 +31,9 @@ WHERE order_no = $3;
 -- name: DeleteOrderByID :exec
 DELETE FROM "order"
 WHERE id = $1;
+
+
+-- name: AddCart :one
+INSERT INTO "cart" (user_id, sku_id, quantity, price)
+VALUES ($1, $2, $3, $4)
+    RETURNING *;

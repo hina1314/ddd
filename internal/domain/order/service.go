@@ -38,7 +38,7 @@ func (s *Service) CreateOrder(ctx context.Context, userID int64, items []OrderIt
 	order.ExpireAt = &expireAt
 
 	// 计算总金额
-	order.CalculateTotal()
+	//order.CalculateTotal()
 
 	err := s.repo.Create(ctx, order)
 	if err != nil {

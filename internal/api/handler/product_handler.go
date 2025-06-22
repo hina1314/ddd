@@ -65,12 +65,14 @@ func (h *ProductHandler) ProductList(c fiber.Ctx) error {
 	}
 
 	var list = make([]dto.ProductList, len(products))
-	for _, each := range products {
-		list = append(list, dto.ProductList{
+	for i, each := range products {
+		list[i] = dto.ProductList{
 			ID:          each.ID,
+			Name:        each.Name,
 			Description: each.Description,
 			Price:       each.Price,
-		})
+			Image:       each.Images,
+		}
 	}
 
 	res := dto.ProductListResponse{

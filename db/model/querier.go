@@ -10,24 +10,27 @@ import (
 )
 
 type Querier interface {
-	AddRoomDate(ctx context.Context, arg AddRoomDateParams) error
-	AddUserPlan(ctx context.Context, arg AddUserPlanParams) error
-	CheckBookingConflicts(ctx context.Context, arg CheckBookingConflictsParams) (int64, error)
+	AddCart(ctx context.Context, arg AddCartParams) (Cart, error)
 	CountUsers(ctx context.Context) (int64, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAccount(ctx context.Context, arg CreateUserAccountParams) error
+	DecreaseSkuStock(ctx context.Context, arg DecreaseSkuStockParams) error
+	DeleteOrderByID(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
-	FindAvailableRoomItems(ctx context.Context, arg FindAvailableRoomItemsParams) ([]int64, error)
-	FindRoomItemIDsByRoomTypeID(ctx context.Context, arg FindRoomItemIDsByRoomTypeIDParams) ([]int64, error)
-	FindSkuByID(ctx context.Context, id int64) (FindSkuByIDRow, error)
-	GetPrice(ctx context.Context, arg GetPriceParams) ([]HotelSkuDayPrice, error)
+	GetOrderByID(ctx context.Context, id int64) (Order, error)
+	GetOrderByOrderNo(ctx context.Context, orderNo string) (Order, error)
+	GetProductWithSkus(ctx context.Context, id int64) (GetProductWithSkusRow, error)
 	GetUserByEmail(ctx context.Context, email sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	ListOrdersByUserID(ctx context.Context, arg ListOrdersByUserIDParams) ([]Order, error)
+	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
-	SaveOrder(ctx context.Context, arg SaveOrderParams) (Order, error)
-	SaveOrderRooms(ctx context.Context, arg SaveOrderRoomsParams) error
+	UpdateOrderStatusByOrderNo(ctx context.Context, arg UpdateOrderStatusByOrderNoParams) error
+	UpdatePaidAtAndStatusByOrderNo(ctx context.Context, arg UpdatePaidAtAndStatusByOrderNoParams) error
+	UpdateSkuStock(ctx context.Context, arg UpdateSkuStockParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 

@@ -18,7 +18,7 @@ errors.USER_MIN_LENGTH: "{field}的长度最少为{min}位！"
 errors.USER_ALPHA_NUM_UNICODE: "{field}不是合法的名称！"
 
 # product errors
-errors.HOTEL_SKU_NOT_FOUND: "未找到房间信息！"
+errors.PRODUCT_NOT_FOUND: "商品不存在！"
 errors.HOTEL_NO_SKU_PRICE: "房间尚未设置价格！"
 errors.HOTEL_NO_STOCK: "没有可用房间！"
 errors.HOTEL_TICKET_NOT_SUPPORT: "不可使用房券！"
@@ -46,6 +46,7 @@ product.list: "商品列表"
 
 # order
 order.create: "订单创建成功！"
+order.add_cart: "添加到购物车成功！"
 
 
 

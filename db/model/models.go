@@ -9,182 +9,70 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"github.com/sqlc-dev/pqtype"
 )
 
-// 酒店
-type Hotel struct {
-	ID               int64          `json:"id"`
-	MerchantID       sql.NullInt64  `json:"merchant_id"`
-	MchID            string         `json:"mch_id"`
-	Name             sql.NullString `json:"name"`
-	Type             int16          `json:"type"`
-	Level            sql.NullInt16  `json:"level"`
-	PoliceCode       sql.NullString `json:"police_code"`
-	PoliceAuthCode   sql.NullString `json:"police_auth_code"`
-	PoliceSign       sql.NullString `json:"police_sign"`
-	Province         sql.NullInt32  `json:"province"`
-	City             sql.NullInt32  `json:"city"`
-	Area             sql.NullInt32  `json:"area"`
-	Address          sql.NullString `json:"address"`
-	Lng              sql.NullString `json:"lng"`
-	Lat              sql.NullString `json:"lat"`
-	Tel              sql.NullString `json:"tel"`
-	Imgurl           sql.NullString `json:"imgurl"`
-	SalesPrice       sql.NullString `json:"sales_price"`
-	TicketPrice      sql.NullString `json:"ticket_price"`
-	MarketPrice      sql.NullString `json:"market_price"`
-	TicketStatus     sql.NullInt16  `json:"ticket_status"`
-	OrderNum         sql.NullInt32  `json:"order_num"`
-	Labels           sql.NullString `json:"labels"`
-	SimpleDesc       sql.NullString `json:"simple_desc"`
-	OpenDate         sql.NullString `json:"open_date"`
-	DecorationDate   sql.NullString `json:"decoration_date"`
-	CheckinStart     sql.NullString `json:"checkin_start"`
-	CheckinEnd       sql.NullString `json:"checkin_end"`
-	RoomNum          sql.NullInt32  `json:"room_num"`
-	Floor            sql.NullString `json:"floor"`
-	FreePark         sql.NullInt16  `json:"free_park"`
-	FreeParkDesc     sql.NullString `json:"free_park_desc"`
-	ChargePark       sql.NullInt16  `json:"charge_park"`
-	ChargeParkDesc   sql.NullString `json:"charge_park_desc"`
-	Child            sql.NullString `json:"child"`
-	ServicePerson    sql.NullString `json:"service_person"`
-	Pet              sql.NullString `json:"pet"`
-	Network          sql.NullString `json:"network"`
-	ChildFacility    sql.NullString `json:"child_facility"`
-	ReceptionService sql.NullString `json:"reception_service"`
-	CaterService     sql.NullString `json:"cater_service"`
-	GeneralFacility  sql.NullString `json:"general_facility"`
-	BusinessService  sql.NullString `json:"business_service"`
-	OtherService     sql.NullString `json:"other_service"`
-	PublicArea       sql.NullString `json:"public_area"`
-	SportFacility    sql.NullString `json:"sport_facility"`
-	Entertainment    sql.NullString `json:"entertainment"`
-	SpecialFacility  sql.NullString `json:"special_facility"`
-	Weight           sql.NullInt32  `json:"weight"`
-	Star             sql.NullString `json:"star"`
-	Status           sql.NullInt16  `json:"status"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
+// 购物车
+type Cart struct {
+	ID        int64           `json:"id"`
+	UserID    int64           `json:"user_id"`
+	SkuID     int64           `json:"sku_id"`
+	Quantity  int32           `json:"quantity"`
+	Price     decimal.Decimal `json:"price"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-// 酒店客房房态
-type HotelRoomDate struct {
-	ID         int64         `json:"id"`
-	OrderID    sql.NullInt64 `json:"order_id"`
-	HotelID    int64         `json:"hotel_id"`
-	RoomItemID int64         `json:"room_item_id"`
-	Date       time.Time     `json:"date"`
-	Status     int16         `json:"status"`
-	CreatedAt  time.Time     `json:"created_at"`
-	UpdatedAt  time.Time     `json:"updated_at"`
-}
-
-// 酒店房间
-type HotelRoomItem struct {
-	ID               int64          `json:"id"`
-	HotelID          int64          `json:"hotel_id"`
-	MerchantID       int64          `json:"merchant_id"`
-	RoomTypeID       int64          `json:"room_type_id"`
-	Sn               string         `json:"sn"`
-	Build            sql.NullString `json:"build"`
-	Floor            string         `json:"floor"`
-	Status           int16          `json:"status"`
-	RepairStatus     sql.NullInt16  `json:"repair_status"`
-	ActiveStatus     int16          `json:"active_status"`
-	CheckStatus      int16          `json:"check_status"`
-	CleanStatus      int16          `json:"clean_status"`
-	LockFactory      string         `json:"lock_factory"`
-	LockMark         string         `json:"lock_mark"`
-	LockDevice       sql.NullString `json:"lock_device"`
-	LockDeviceStatus sql.NullString `json:"lock_device_status"`
-	LockID           string         `json:"lock_id"`
-	LockStatus       int16          `json:"lock_status"`
-	LockOnline       int16          `json:"lock_online"`
-	LockElectric     int32          `json:"lock_electric"`
-	GatewayType      int32          `json:"gateway_type"`
-	GatewayStatus    int16          `json:"gateway_status"`
-	GatewayInfo      string         `json:"gateway_info"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-}
-
-// 酒店客房类型
-type HotelRoomType struct {
-	ID         int64          `json:"id"`
-	MerchantID sql.NullInt32  `json:"merchant_id"`
-	HotelID    sql.NullInt32  `json:"hotel_id"`
-	Name       sql.NullString `json:"name"`
-	Bed        sql.NullString `json:"bed"`
-	Sqm        sql.NullString `json:"sqm"`
-	Floor      sql.NullString `json:"floor"`
-	Window     sql.NullInt16  `json:"window"`
-	Wifi       sql.NullInt16  `json:"wifi"`
-	Person     sql.NullString `json:"person"`
-	Smoke      sql.NullInt16  `json:"smoke"`
-	Facility   sql.NullString `json:"facility"`
-	Status     sql.NullInt16  `json:"status"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-}
-
-// 酒店客房sku
-type HotelSku struct {
-	ID              int64           `json:"id"`
-	HotelID         int64           `json:"hotel_id"`
-	RoomTypeID      int64           `json:"room_type_id"`
-	MerchantID      int64           `json:"merchant_id"`
-	Name            sql.NullString  `json:"name"`
-	SalesPrice      decimal.Decimal `json:"sales_price"`
-	BreakfastNum    sql.NullInt16   `json:"breakfast_num"`
-	RefundStatus    bool            `json:"refund_status"`
-	RefundAudit     sql.NullInt16   `json:"refund_audit"`
-	RefundCondition sql.NullString  `json:"refund_condition"`
-	Desc            sql.NullString  `json:"desc"`
-	Notice          sql.NullString  `json:"notice"`
-	SaleNum         sql.NullInt32   `json:"sale_num"`
-	Status          sql.NullInt16   `json:"status"`
-	CreatedAt       time.Time       `json:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at"`
-}
-
-// 酒店客房sku价格日历
-type HotelSkuDayPrice struct {
-	ID           int64           `json:"id"`
-	HotelID      int64           `json:"hotel_id"`
-	SkuID        int64           `json:"sku_id"`
-	RoomTypeID   int64           `json:"room_type_id"`
-	Date         time.Time       `json:"date"`
-	MarketPrice  decimal.Decimal `json:"market_price"`
-	SalePrice    decimal.Decimal `json:"sale_price"`
-	TicketPrice  decimal.Decimal `json:"ticket_price"`
-	TicketStatus bool            `json:"ticket_status"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
-}
-
+// 订单
 type Order struct {
-	ID             int64           `json:"id"`
-	OrderSn        string          `json:"order_sn"`
-	UserID         int64           `json:"user_id"`
-	HotelID        int64           `json:"hotel_id"`
-	MerchantID     int64           `json:"merchant_id"`
-	TotalPrice     decimal.Decimal `json:"total_price"`
-	TotalNumber    int32           `json:"total_number"`
-	TotalPayTicket int32           `json:"total_pay_ticket"`
-	Status         int16           `json:"status"`
-	CreatedAt      time.Time       `json:"created_at"`
-	ExpireTime     time.Time       `json:"expire_time"`
+	ID          int64           `json:"id"`
+	OrderNo     string          `json:"order_no"`
+	UserID      int32           `json:"user_id"`
+	Status      int16           `json:"status"`
+	TotalAmount decimal.Decimal `json:"total_amount"`
+	PaidAt      sql.NullTime    `json:"paid_at"`
+	ExpireAt    sql.NullTime    `json:"expire_at"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
 
-type OrderRoom struct {
-	ID         int64           `json:"id"`
-	OrderID    int64           `json:"order_id"`
-	RoomTypeID int64           `json:"room_type_id"`
-	RoomItemID int64           `json:"room_item_id"`
-	Price      decimal.Decimal `json:"price"`
-	Status     int16           `json:"status"`
-	CreatedAt  time.Time       `json:"created_at"`
+// 订单项目
+type OrderItem struct {
+	ID        int64           `json:"id"`
+	OrderID   int32           `json:"order_id"`
+	ProductID int32           `json:"product_id"`
+	Quantity  int32           `json:"quantity"`
+	UnitPrice decimal.Decimal `json:"unit_price"`
+}
+
+// 商品
+type Product struct {
+	ID          int64           `json:"id"`
+	Name        string          `json:"name"`
+	Description sql.NullString  `json:"description"`
+	Price       decimal.Decimal `json:"price"`
+	Images      sql.NullString  `json:"images"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   sql.NullTime    `json:"deleted_at"`
+}
+
+// 商品SKU
+type ProductSku struct {
+	ID        int64                 `json:"id"`
+	ProductID int32                 `json:"product_id"`
+	Name      string                `json:"name"`
+	Specs     pqtype.NullRawMessage `json:"specs"`
+	Price     decimal.Decimal       `json:"price"`
+	Images    sql.NullString        `json:"images"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
+	DeletedAt sql.NullTime          `json:"deleted_at"`
+}
+
+// 库存
+type ProductSkuStock struct {
+	SkuID int32 `json:"sku_id"`
+	Stock int32 `json:"stock"`
 }
 
 // 用户
@@ -209,17 +97,4 @@ type UserAccount struct {
 	CreatedAt     time.Time       `json:"created_at"`
 	UpdatedAt     time.Time       `json:"updated_at"`
 	DeletedAt     sql.NullTime    `json:"deleted_at"`
-}
-
-type UserPlan struct {
-	ID         int64     `json:"id"`
-	OrderID    int64     `json:"order_id"`
-	RoomItemID int64     `json:"room_item_id"`
-	Phone      string    `json:"phone"`
-	Name       string    `json:"name"`
-	StartDate  time.Time `json:"start_date"`
-	EndDate    time.Time `json:"end_date"`
-	Status     int16     `json:"status"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
 }

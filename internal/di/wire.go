@@ -13,10 +13,13 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
+	"study/internal/app/order"
 	"study/internal/app/product"
 	"study/internal/app/user"
+	orderService "study/internal/domain/order"
 	productService "study/internal/domain/product"
 	userService "study/internal/domain/user/service"
+	orderRepo "study/internal/infra/order"
 	productRepo "study/internal/infra/product"
 	userRepo "study/internal/infra/user"
 	"study/token"
@@ -29,6 +32,7 @@ type Dependencies struct {
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
 	ProductHandler  *handler.ProductHandler
+	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
@@ -65,6 +69,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		newTranslationService,
 		userRepo.NewUserRepository,
 		productRepo.NewProductRepository,
+		orderRepo.NewOrderRepository,
 		// 领域层
 		// user
 		userService.NewUserLoginService,
@@ -75,14 +80,16 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		productService.NewService,
 
 		// order
-		//orderService.NewOrderService,
+		orderService.NewService,
+
 		// 应用层
 		user.NewUserService,
 		product.NewAppService,
-		//order.NewOrderService,
+		order.NewAppService,
 		// 表现层
 		response.NewResponseHandler,
 		handler.NewUserHandler,
+		handler.NewOrderHandler,
 		handler.NewProductHandler,
 
 		// 返回值

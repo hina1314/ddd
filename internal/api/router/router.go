@@ -19,12 +19,12 @@ func Setup(app *fiber.App, deps *di.Dependencies) {
 	v1.Post("/login", deps.UserHandler.Login)
 
 	user := v1.Group("user", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
-	//order := v1.Group("order", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
-	product := v1.Group("product", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
+	order := v1.Group("order", middleware.Auth(deps.ResponseHandler, deps.TokenMaker))
+	product := v1.Group("product")
 
 	// 用户路由
 	userRoutes(user, deps.UserHandler)
-	//orderRoutes(order, deps.OrderHandler)
+	orderRoutes(order, deps.OrderHandler)
 	productRoutes(product, deps.ProductHandler)
 }
 
@@ -35,7 +35,8 @@ func userRoutes(user fiber.Router, h *handler.UserHandler) {
 }
 
 func orderRoutes(order fiber.Router, h *handler.OrderHandler) {
-	order.Post("/create", h.CreateOrder)
+	//order.Post("/create", h.CreateOrder)
+	order.Post("/add_cart", h.AddCart)
 }
 
 func productRoutes(product fiber.Router, h *handler.ProductHandler) {

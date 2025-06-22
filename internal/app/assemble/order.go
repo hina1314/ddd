@@ -58,3 +58,17 @@ func NewCreateOrderCommand(req dto.CreateOrderRequest, payload *token.Payload) (
 		Contact:   contacts,
 	}, nil
 }
+
+type CreateAddCartCommand struct {
+	UserID   int64
+	SkuID    int64
+	Quantity int32
+}
+
+func NewAddCartCommand(req dto.AddCartRequest, payload *token.Payload) (*CreateAddCartCommand, error) {
+	return &CreateAddCartCommand{
+		UserID:   payload.UserId,
+		SkuID:    req.SkuID,
+		Quantity: req.Quantity,
+	}, nil
+}

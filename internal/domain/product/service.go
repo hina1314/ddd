@@ -1,14 +1,13 @@
 package product
 
 import (
-	"context"
-	"errors"
+	"study/util/errors"
 )
 
 var (
-	ErrProductNotFound   = errors.New("product not found")
-	ErrSKUNotFound       = errors.New("sku not found")
-	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrProductNotFound = errors.New(errors.ErrProductNotFound, "product not found")
+	//ErrSKUNotFound       = errors.New("sku not found")
+	//ErrInsufficientStock = errors.New("insufficient stock")
 )
 
 // Service 商品领域服务
@@ -21,20 +20,20 @@ func NewService(repo Repository) *Service {
 }
 
 // CheckStockAndReserve 检查库存并预留
-func (s *Service) CheckStockAndReserve(ctx context.Context, skuID int64, quantity int) error {
-	sku, err := s.repo.GetSKUByID(ctx, skuID)
-	if err != nil {
-		return err
-	}
-	if sku == nil {
-		return ErrSKUNotFound
-	}
-
-	if !sku.HasStock(quantity) {
-		return ErrInsufficientStock
-	}
-
-	// 扣减库存
-	newStock := sku.Stock - quantity
-	return s.repo.UpdateSKUStock(ctx, skuID, newStock)
-}
+//func (s *Service) CheckStockAndReserve(ctx context.Context, skuID int64, quantity int) error {
+//	sku, err := s.repo.GetSKUByID(ctx, skuID)
+//	if err != nil {
+//		return err
+//	}
+//	if sku == nil {
+//		return ErrSKUNotFound
+//	}
+//
+//	if !sku.HasStock(quantity) {
+//		return ErrInsufficientStock
+//	}
+//
+//	// 扣减库存
+//	newStock := sku.Stock - quantity
+//	return s.repo.UpdateSKUStock(ctx, skuID, newStock)
+//}
