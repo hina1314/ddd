@@ -4,7 +4,9 @@
 package di
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/wire"
@@ -24,10 +26,12 @@ import (
 	"study/token"
 	"study/util/errors"
 	"study/util/i18n"
+	"time"
 )
 
 // Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
+	DB              *model.SQLStore
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
 	OrderHandler    *handler.OrderHandler
@@ -39,7 +43,7 @@ type Dependencies struct {
 // NewServer 返回 Fiber 服务器实例。
 func (d *Dependencies) NewServer() *fiber.App {
 	if d.server == nil {
-		d.server = fiber.New()
+		d.server = newFiberApp(d.ResponseHandler)
 	}
 	return d.server
 }
@@ -59,6 +63,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		// 基础设施层
 		newFiberApp, // 新增提供者
 		newDB,
+		wire.Bind(new(model.TxManager), new(*model.SQLStore)),
 		newTokenMaker,
 		newErrorHandler,
 		newValidator,
@@ -94,15 +99,36 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	return nil, nil
 }
 
-func newFiberApp() *fiber.App {
-	return fiber.New()
+func newFiberApp(
+	responseHandler *response.ResponseHandler,
+) *fiber.App {
+	return fiber.New(fiber.Config{
+		ErrorHandler: responseHandler.HandleError,
+	})
 }
 
-func newDB(cfg config.Config) (model.TxManager, error) {
-	db, err := sql.Open("postgres", cfg.DBSource)
+func newDB(cfg config.Config) (*model.SQLStore, error) {
+	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open database: %w", err)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		// 连接验证失败，不保留无用的连接池。
+		if closeErr := db.Close(); closeErr != nil {
+			return nil, fmt.Errorf(
+				"ping database: %w; close failed pool: %v",
+				err,
+				closeErr,
+			)
+		}
+
+		return nil, fmt.Errorf("ping database: %w", err)
+	}
+
 	return model.NewStore(db), nil
 }
 

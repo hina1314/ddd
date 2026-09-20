@@ -2,19 +2,23 @@ package response
 
 import (
 	stdErr "errors"
+	"fmt"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
+	"net/http"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
-	"net/http"
 	"study/util/errors"
 	"study/util/i18n"
 )
 
 // Response 定义响应的结构。
 type Response struct {
-	Code  interface{}        `json:"code"` // 成功是 int 0，失败是 string errorCode
-	Msg   string             `json:"msg"`  // 已翻译好的消息
-	Data  interface{}        `json:"data,omitempty"`
-	Debug *errors.ErrorTrace `json:"debug,omitempty"`
+	Code      interface{}        `json:"code"`
+	Msg       string             `json:"msg"`
+	Data      interface{}        `json:"data,omitempty"`
+	RequestID string             `json:"request_id,omitempty"`
+	Debug     *errors.ErrorTrace `json:"debug,omitempty"`
 }
 
 func (h *ResponseHandler) Success(c fiber.Ctx, msg string, data interface{}) error {
@@ -46,6 +50,7 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 		statusCode     int
 		domainErr      *errors.DomainError
 		validationErrs validator.ValidationErrors
+		fiberErr       *fiber.Error
 	)
 
 	if stdErr.As(err, &validationErrs) && len(validationErrs) > 0 {
@@ -63,6 +68,24 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 			statusCode = http.StatusInternalServerError
 		default:
 			statusCode = http.StatusInternalServerError
+		}
+	} else if stdErr.As(err, &fiberErr) {
+		statusCode = fiberErr.Code
+
+		errorCode := errors.ErrorCode(
+			fmt.Sprintf("HTTP_%d", statusCode),
+		)
+
+		// 5xx 对外统一显示内部错误，不泄露具体实现细节。
+		if statusCode >= http.StatusInternalServerError {
+			errorCode = errors.ErrInternalError
+		}
+
+		domainErr = &errors.DomainError{
+			Code:    errorCode,
+			Message: fiberErr.Message,
+			Cause:   err,
+			Stack:   errors.CaptureStack(2),
 		}
 	} else {
 		statusCode = http.StatusInternalServerError
@@ -84,10 +107,11 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 	debugTrace := h.ErrorHandler.GetErrorTrace(domainErr)
 
 	response := Response{
-		Code:  domainErr.Code,
-		Msg:   message,
-		Data:  nil,
-		Debug: debugTrace,
+		Code:      domainErr.Code,
+		Msg:       message,
+		Data:      nil,
+		RequestID: requestid.FromContext(ctx),
+		Debug:     debugTrace,
 	}
 
 	return ctx.Status(statusCode).JSON(response)

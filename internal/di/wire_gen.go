@@ -7,7 +7,9 @@
 package di
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"study/config"
@@ -25,6 +27,7 @@ import (
 	"study/token"
 	"study/util/errors"
 	"study/util/i18n"
+	"time"
 )
 
 import (
@@ -34,6 +37,10 @@ import (
 // Injectors from wire.go:
 
 func initializeDependencies(cfg config.Config) (*Dependencies, error) {
+	sqlStore, err := newDB(cfg)
+	if err != nil {
+		return nil, err
+	}
 	errorHandler := newErrorHandler(cfg)
 	fileTranslator := newFileTranslator()
 	translationService, err := newTranslationService(fileTranslator, cfg)
@@ -41,11 +48,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		return nil, err
 	}
 	responseHandler := response.NewResponseHandler(errorHandler, translationService)
-	txManager, err := newDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-	userRepository := user.NewUserRepository(txManager)
+	userRepository := user.NewUserRepository(sqlStore)
 	userRegisterService := service.NewUserRegisterService(userRepository)
 	userLoginService := service.NewUserLoginService(userRepository)
 	userUpdateService := service.NewUserUpdateService(userRepository)
@@ -53,20 +56,21 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
-	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, txManager, maker)
+	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, sqlStore, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
-	orderRepository := order.NewOrderRepository(txManager)
-	hotelRepository := hotel.NewHotelRepository(txManager)
+	orderRepository := order.NewOrderRepository(sqlStore)
+	hotelRepository := hotel.NewHotelRepository(sqlStore)
 	stockService := service2.NewStockService(hotelRepository)
 	pricingService := service2.NewPricingService()
-	userPlanRepository := user.NewUserPlanRepo(txManager)
+	userPlanRepository := user.NewUserPlanRepo(sqlStore)
 	userPlanService := service.NewUserPlanService(userPlanRepository)
 	orderService := service3.NewOrderService(orderRepository, userPlanRepository, hotelRepository, stockService)
-	orderOrderService := order2.NewOrderService(orderRepository, hotelRepository, userRepository, stockService, pricingService, userPlanService, orderService, txManager)
+	orderOrderService := order2.NewOrderService(orderRepository, hotelRepository, userRepository, stockService, pricingService, userPlanService, orderService, sqlStore)
 	orderHandler := handler.NewOrderHandler(responseHandler, orderOrderService, validate)
-	app := newFiberApp()
+	app := newFiberApp(responseHandler)
 	dependencies := &Dependencies{
+		DB:              sqlStore,
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
 		OrderHandler:    orderHandler,
@@ -81,6 +85,7 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 
 // Dependencies 包含应用程序的所有依赖。
 type Dependencies struct {
+	DB              *model.SQLStore
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
 	OrderHandler    *handler.OrderHandler
@@ -92,7 +97,7 @@ type Dependencies struct {
 // NewServer 返回 Fiber 服务器实例。
 func (d *Dependencies) NewServer() *fiber.App {
 	if d.server == nil {
-		d.server = fiber.New()
+		d.server = newFiberApp(d.ResponseHandler)
 	}
 	return d.server
 }
@@ -107,15 +112,36 @@ func NewDependencies(cfg config.Config) (*Dependencies, error) {
 	return deps, nil
 }
 
-func newFiberApp() *fiber.App {
-	return fiber.New()
+func newFiberApp(
+	responseHandler *response.ResponseHandler,
+) *fiber.App {
+	return fiber.New(fiber.Config{
+		ErrorHandler: responseHandler.HandleError,
+	})
 }
 
-func newDB(cfg config.Config) (model.TxManager, error) {
-	db, err := sql.Open("postgres", cfg.DBSource)
+func newDB(cfg config.Config) (*model.SQLStore, error) {
+	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open database: %w", err)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+
+		if closeErr := db.Close(); closeErr != nil {
+			return nil, fmt.Errorf(
+				"ping database: %w; close failed pool: %v",
+				err,
+				closeErr,
+			)
+		}
+
+		return nil, fmt.Errorf("ping database: %w", err)
+	}
+
 	return model.NewStore(db), nil
 }
 
