@@ -48,5 +48,6 @@ func userRoutes(user fiber.Router, h *handler.UserHandler) {
 }
 
 func orderRoutes(order fiber.Router, h *handler.OrderHandler) {
-	order.Post("/create", h.CreateOrder)
+	// 订单创建尚未实现，暂不注册 /v1/order/create。
+	// order.Post("/create", h.CreateOrder)
 }
