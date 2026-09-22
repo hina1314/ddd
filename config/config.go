@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 	"time"
 )
@@ -17,8 +16,6 @@ type Config struct {
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	DefaultLocale       string        `mapstructure:"DEFAULT_LOCALE"`
 	Debug               bool          `mapstructure:"DEBUG"`
-	TrafficDrainDelay   time.Duration `mapstructure:"TRAFFIC_DRAIN_DELAY"`
-	ShutdownTimeout     time.Duration `mapstructure:"SHUTDOWN_TIMEOUT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -33,29 +30,5 @@ func LoadConfig(path string) (config Config, err error) {
 		return
 	}
 	err = viper.Unmarshal(&config)
-	if err != nil {
-		return
-	}
-
-	if err = config.Validate(); err != nil {
-		err = fmt.Errorf("invalid configuration: %w", err)
-		return
-	}
 	return
-}
-
-func (c Config) Validate() error {
-	if c.TrafficDrainDelay < 0 {
-		return fmt.Errorf(
-			"TRAFFIC_DRAIN_DELAY must not be negative",
-		)
-	}
-
-	if c.ShutdownTimeout <= 0 {
-		return fmt.Errorf(
-			"SHUTDOWN_TIMEOUT must be greater than zero",
-		)
-	}
-
-	return nil
 }
