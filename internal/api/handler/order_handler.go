@@ -53,29 +53,31 @@ func (h *OrderHandler) AddCart(c fiber.Ctx) error {
 }
 
 // CreateOrder 处理创建订单请求。
-//func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
-//	var req dto.CreateOrderRequest
-//	if err := c.Bind().JSON(&req); err != nil {
-//		return h.res.HandleError(c, err)
-//	}
-//
-//	var payload, err = context.GetAuthPayloadFromContext(c.Context())
-//	if err != nil {
-//		return err
-//	}
-//
-//	if err = h.validator.Struct(req); err != nil {
-//		return h.res.HandleError(c, err)
-//	}
-//
-//	cmd, err := assemble.NewCreateOrderCommand(req, payload)
-//	if err != nil {
-//		return h.res.HandleError(c, err)
-//	}
-//	res, err := h.orderService.CreateOrder(c.Context(), cmd)
-//	if err != nil {
-//		return h.res.HandleError(c, err)
-//	}
-//
-//	return h.res.Success(c, "order.create", res)
-//}
+/*
+func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
+	var req dto.CreateOrderRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	var payload, err = context.GetAuthPayloadFromContext(c.Context())
+	if err != nil {
+		return err
+	}
+
+	if err = h.validator.Struct(req); err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	cmd, err := assemble.NewCreateOrderCommand(req, payload)
+	if err != nil {
+		return h.res.HandleError(c, err)
+	}
+	res, err := h.orderService.CreateOrder(c.Context(), cmd)
+	if err != nil {
+		return h.res.HandleError(c, err)
+	}
+
+	return h.res.Success(c, "order.create", res)
+}
+*/

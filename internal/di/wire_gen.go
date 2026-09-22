@@ -16,13 +16,14 @@ import (
 	"study/db/model"
 	"study/internal/api/handler"
 	"study/internal/api/response"
-	order2 "study/internal/app/order"
+	order3 "study/internal/app/order"
+	product3 "study/internal/app/product"
 	user2 "study/internal/app/user"
-	service2 "study/internal/domain/hotel/service"
-	service3 "study/internal/domain/order/service"
+	order2 "study/internal/domain/order"
+	product2 "study/internal/domain/product"
 	"study/internal/domain/user/service"
-	"study/internal/infra/hotel"
 	"study/internal/infra/order"
+	"study/internal/infra/product"
 	"study/internal/infra/user"
 	"study/token"
 	"study/util/errors"
@@ -59,20 +60,20 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, sqlStore, maker)
 	validate := newValidator()
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
+	repository := product.NewProductRepository(sqlStore)
+	productService := product2.NewService(repository)
+	appService := product3.NewAppService(productService, repository)
+	productHandler := handler.NewProductHandler(responseHandler, appService, validate)
 	orderRepository := order.NewOrderRepository(sqlStore)
-	hotelRepository := hotel.NewHotelRepository(sqlStore)
-	stockService := service2.NewStockService(hotelRepository)
-	pricingService := service2.NewPricingService()
-	userPlanRepository := user.NewUserPlanRepo(sqlStore)
-	userPlanService := service.NewUserPlanService(userPlanRepository)
-	orderService := service3.NewOrderService(orderRepository, userPlanRepository, hotelRepository, stockService)
-	orderOrderService := order2.NewOrderService(orderRepository, hotelRepository, userRepository, stockService, pricingService, userPlanService, orderService, sqlStore)
-	orderHandler := handler.NewOrderHandler(responseHandler, orderOrderService, validate)
+	orderService := order2.NewService(orderRepository)
+	orderAppService := order3.NewAppService(orderService, orderRepository, productService, repository)
+	orderHandler := handler.NewOrderHandler(responseHandler, orderAppService, validate)
 	app := newFiberApp(responseHandler)
 	dependencies := &Dependencies{
 		DB:              sqlStore,
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
+		ProductHandler:  productHandler,
 		OrderHandler:    orderHandler,
 		TokenMaker:      maker,
 		Config:          cfg,
@@ -88,6 +89,7 @@ type Dependencies struct {
 	DB              *model.SQLStore
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
+	ProductHandler  *handler.ProductHandler
 	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
