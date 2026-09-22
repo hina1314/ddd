@@ -32,11 +32,15 @@ type SQLTransaction struct {
 	tx *sql.Tx
 }
 
-func NewStore(db *sql.DB) TxManager {
+func NewStore(db *sql.DB) *SQLStore {
 	return &SQLStore{
 		Queries: New(db),
 		db:      db,
 	}
+}
+
+func (s *SQLStore) PingContext(ctx context.Context) error {
+	return s.db.PingContext(ctx)
 }
 
 func (s *SQLStore) Begin(ctx context.Context) (Tx, context.Context, error) {
@@ -51,6 +55,10 @@ func (s *SQLStore) Begin(ctx context.Context) (Tx, context.Context, error) {
 	}
 	ctx = withTx(ctx, x)
 	return x, ctx, nil
+}
+
+func (s *SQLStore) Close() error {
+	return s.db.Close()
 }
 
 func (t *SQLTransaction) Commit() error {
