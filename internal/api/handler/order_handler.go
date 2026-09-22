@@ -12,21 +12,21 @@ import (
 
 type OrderHandler struct {
 	res          *response.ResponseHandler
-	orderService *order.OrderService
+	orderService *order.AppService
 	validator    *validator.Validate
 }
 
-func NewOrderHandler(base *response.ResponseHandler, orderService *order.OrderService, v *validator.Validate) *OrderHandler {
+func NewOrderHandler(res *response.ResponseHandler, orderService *order.AppService, v *validator.Validate) *OrderHandler {
 	return &OrderHandler{
-		res:          base,
+		res:          res,
 		orderService: orderService,
 		validator:    v,
 	}
 }
 
-// CreateOrder 处理创建订单请求。
-func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
-	var req dto.CreateOrderRequest
+// AddCart 添加到购物车。
+func (h *OrderHandler) AddCart(c fiber.Ctx) error {
+	var req dto.AddCartRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return h.res.HandleError(c, err)
 	}
@@ -40,14 +40,42 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		return h.res.HandleError(c, err)
 	}
 
-	cmd, err := assemble.NewCreateOrderCommand(req, payload)
+	cmd, err := assemble.NewAddCartCommand(req, payload)
 	if err != nil {
 		return h.res.HandleError(c, err)
 	}
-	res, err := h.orderService.CreateOrder(c.Context(), cmd)
+	cart, err := h.orderService.AddCart(c.Context(), cmd)
 	if err != nil {
 		return h.res.HandleError(c, err)
 	}
 
-	return h.res.Success(c, "order.create", res)
+	return h.res.Success(c, "order.add_cart", cart)
 }
+
+// CreateOrder 处理创建订单请求。
+//func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
+//	var req dto.CreateOrderRequest
+//	if err := c.Bind().JSON(&req); err != nil {
+//		return h.res.HandleError(c, err)
+//	}
+//
+//	var payload, err = context.GetAuthPayloadFromContext(c.Context())
+//	if err != nil {
+//		return err
+//	}
+//
+//	if err = h.validator.Struct(req); err != nil {
+//		return h.res.HandleError(c, err)
+//	}
+//
+//	cmd, err := assemble.NewCreateOrderCommand(req, payload)
+//	if err != nil {
+//		return h.res.HandleError(c, err)
+//	}
+//	res, err := h.orderService.CreateOrder(c.Context(), cmd)
+//	if err != nil {
+//		return h.res.HandleError(c, err)
+//	}
+//
+//	return h.res.Success(c, "order.create", res)
+//}

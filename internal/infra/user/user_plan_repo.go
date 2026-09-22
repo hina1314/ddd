@@ -5,7 +5,6 @@ import (
 	"study/db/model"
 	"study/internal/domain/user/entity"
 	"study/internal/domain/user/repository"
-	"study/util/errors"
 	"time"
 )
 
@@ -20,26 +19,26 @@ func NewUserPlanRepo(db model.TxManager) repository.UserPlanRepository {
 }
 
 func (u *UserPlanRepositoryImpl) CheckBookingConflicts(ctx context.Context, start, end time.Time, phone string) error {
-	q := u.db.Querier(ctx)
+	//q := u.db.Querier(ctx)
 
-	count, err := q.CheckBookingConflicts(ctx, model.CheckBookingConflictsParams{
-		Phone:     phone,
-		StartDate: start,
-		EndDate:   end,
-	})
-	if err != nil {
-		return errors.New("check_booking_conflicts_error", err.Error())
-	}
-
-	if count > 0 {
-		return errors.New(errors.ErrBookingConflict, "user has conflicting bookings for the specified dates")
-	}
+	//count, err := q.CheckBookingConflicts(ctx, model.CheckBookingConflictsParams{
+	//	Phone:     phone,
+	//	StartDate: start,
+	//	EndDate:   end,
+	//})
+	//if err != nil {
+	//	return errors.New("check_booking_conflicts_error", err.Error())
+	//}
+	//
+	//if count > 0 {
+	//	return errors.New(errors.ErrBookingConflict, "user has conflicting bookings for the specified dates")
+	//}
 
 	return nil
 }
 
 func (u *UserPlanRepositoryImpl) AddUserPlan(ctx context.Context, userPlans []entity.UserPlan) error {
-	q := u.db.Querier(ctx)
+	// q := u.db.Querier(ctx)
 
 	// Prepare arrays for bulk insert
 	orderIDs := make([]int64, len(userPlans))
@@ -64,20 +63,20 @@ func (u *UserPlanRepositoryImpl) AddUserPlan(ctx context.Context, userPlans []en
 		updatedAts[i] = plan.UpdatedAt
 	}
 
-	err := q.AddUserPlan(ctx, model.AddUserPlanParams{
-		OrderID:    orderIDs,
-		RoomItemID: roomItemIDs,
-		Phone:      phones,
-		Name:       names,
-		StartDate:  startDates,
-		EndDate:    endDates,
-		Status:     statuses,
-		CreatedAt:  createdAts,
-		UpdatedAt:  updatedAts,
-	})
-	if err != nil {
-		return errors.New("add_user_plan_error", "failed to add user plans: "+err.Error())
-	}
+	//err := q.AddUserPlan(ctx, model.AddUserPlanParams{
+	//	OrderID:    orderIDs,
+	//	RoomItemID: roomItemIDs,
+	//	Phone:      phones,
+	//	Name:       names,
+	//	StartDate:  startDates,
+	//	EndDate:    endDates,
+	//	Status:     statuses,
+	//	CreatedAt:  createdAts,
+	//	UpdatedAt:  updatedAts,
+	//})
+	//if err != nil {
+	//	return errors.New("add_user_plan_error", "failed to add user plans: "+err.Error())
+	//}
 
 	return nil
 }

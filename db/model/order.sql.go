@@ -7,99 +7,207 @@ package model
 
 import (
 	"context"
-	"time"
+	"database/sql"
 
-	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 )
 
-const saveOrder = `-- name: SaveOrder :one
-INSERT INTO "order" (
-    order_sn, user_id, hotel_id, merchant_id, total_price, total_number,
-    total_pay_ticket, status, created_at, expire_time
-)
-VALUES (
-           $1::VARCHAR, $2::BIGINT, $3::BIGINT, $4::BIGINT,
-           $5::DECIMAL, $6::INT, $7::INT, $8::SMALLINT,
-           $9::TIMESTAMP, $10::TIMESTAMP
-       )
-RETURNING id, order_sn, user_id, hotel_id, merchant_id, total_price, total_number, total_pay_ticket, status, created_at, expire_time
+const addCart = `-- name: AddCart :one
+INSERT INTO "cart" (user_id, sku_id, quantity, price)
+VALUES ($1, $2, $3, $4)
+    RETURNING id, user_id, sku_id, quantity, price, created_at, updated_at
 `
 
-type SaveOrderParams struct {
-	OrderSn        string          `json:"order_sn"`
-	UserID         int64           `json:"user_id"`
-	HotelID        int64           `json:"hotel_id"`
-	MerchantID     int64           `json:"merchant_id"`
-	TotalPrice     decimal.Decimal `json:"total_price"`
-	TotalNumber    int32           `json:"total_number"`
-	TotalPayTicket int32           `json:"total_pay_ticket"`
-	Status         int16           `json:"status"`
-	CreatedAt      time.Time       `json:"created_at"`
-	ExpireTime     time.Time       `json:"expire_time"`
+type AddCartParams struct {
+	UserID   int64           `json:"user_id"`
+	SkuID    int64           `json:"sku_id"`
+	Quantity int32           `json:"quantity"`
+	Price    decimal.Decimal `json:"price"`
 }
 
-func (q *Queries) SaveOrder(ctx context.Context, arg SaveOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, saveOrder,
-		arg.OrderSn,
+func (q *Queries) AddCart(ctx context.Context, arg AddCartParams) (Cart, error) {
+	row := q.db.QueryRowContext(ctx, addCart,
 		arg.UserID,
-		arg.HotelID,
-		arg.MerchantID,
-		arg.TotalPrice,
-		arg.TotalNumber,
-		arg.TotalPayTicket,
-		arg.Status,
-		arg.CreatedAt,
-		arg.ExpireTime,
+		arg.SkuID,
+		arg.Quantity,
+		arg.Price,
 	)
-	var i Order
+	var i Cart
 	err := row.Scan(
 		&i.ID,
-		&i.OrderSn,
 		&i.UserID,
-		&i.HotelID,
-		&i.MerchantID,
-		&i.TotalPrice,
-		&i.TotalNumber,
-		&i.TotalPayTicket,
-		&i.Status,
+		&i.SkuID,
+		&i.Quantity,
+		&i.Price,
 		&i.CreatedAt,
-		&i.ExpireTime,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const saveOrderRooms = `-- name: SaveOrderRooms :exec
-INSERT INTO order_room (
-     order_id, room_type_id, room_item_id, price, status, created_at
-)
-VALUES (
-           unnest($1::BIGINT[]),
-           unnest($2::BIGINT[]),
-           unnest($3::BIGINT[]),
-           unnest($4::DECIMAL[]),
-           unnest($5::SMALLINT[]),
-           unnest($6::TIMESTAMP[])
-       )
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO "order" (order_no, user_id, status, total_amount, paid_at)
+VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at
 `
 
-type SaveOrderRoomsParams struct {
-	OrderID    []int64           `json:"order_id"`
-	RoomTypeID []int64           `json:"room_type_id"`
-	RoomItemID []int64           `json:"room_item_id"`
-	Price      []decimal.Decimal `json:"price"`
-	Status     []int16           `json:"status"`
-	CreatedAt  []time.Time       `json:"created_at"`
+type CreateOrderParams struct {
+	OrderNo     string          `json:"order_no"`
+	UserID      int32           `json:"user_id"`
+	Status      int16           `json:"status"`
+	TotalAmount decimal.Decimal `json:"total_amount"`
+	PaidAt      sql.NullTime    `json:"paid_at"`
 }
 
-func (q *Queries) SaveOrderRooms(ctx context.Context, arg SaveOrderRoomsParams) error {
-	_, err := q.db.ExecContext(ctx, saveOrderRooms,
-		pq.Array(arg.OrderID),
-		pq.Array(arg.RoomTypeID),
-		pq.Array(arg.RoomItemID),
-		pq.Array(arg.Price),
-		pq.Array(arg.Status),
-		pq.Array(arg.CreatedAt),
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
+	row := q.db.QueryRowContext(ctx, createOrder,
+		arg.OrderNo,
+		arg.UserID,
+		arg.Status,
+		arg.TotalAmount,
+		arg.PaidAt,
 	)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.OrderNo,
+		&i.UserID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.PaidAt,
+		&i.ExpireAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteOrderByID = `-- name: DeleteOrderByID :exec
+DELETE FROM "order"
+WHERE id = $1
+`
+
+func (q *Queries) DeleteOrderByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteOrderByID, id)
+	return err
+}
+
+const getOrderByID = `-- name: GetOrderByID :one
+SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at FROM "order"
+WHERE id = $1
+`
+
+func (q *Queries) GetOrderByID(ctx context.Context, id int64) (Order, error) {
+	row := q.db.QueryRowContext(ctx, getOrderByID, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.OrderNo,
+		&i.UserID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.PaidAt,
+		&i.ExpireAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOrderByOrderNo = `-- name: GetOrderByOrderNo :one
+SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at FROM "order"
+WHERE order_no = $1
+`
+
+func (q *Queries) GetOrderByOrderNo(ctx context.Context, orderNo string) (Order, error) {
+	row := q.db.QueryRowContext(ctx, getOrderByOrderNo, orderNo)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.OrderNo,
+		&i.UserID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.PaidAt,
+		&i.ExpireAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listOrdersByUserID = `-- name: ListOrdersByUserID :many
+SELECT id, order_no, user_id, status, total_amount, paid_at, expire_at, created_at FROM "order"
+WHERE user_id = $1
+ORDER BY created_at DESC
+    LIMIT $2 OFFSET $3
+`
+
+type ListOrdersByUserIDParams struct {
+	UserID int32 `json:"user_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListOrdersByUserID(ctx context.Context, arg ListOrdersByUserIDParams) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, listOrdersByUserID, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderNo,
+			&i.UserID,
+			&i.Status,
+			&i.TotalAmount,
+			&i.PaidAt,
+			&i.ExpireAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateOrderStatusByOrderNo = `-- name: UpdateOrderStatusByOrderNo :exec
+UPDATE "order"
+SET status = $1
+WHERE order_no = $2
+`
+
+type UpdateOrderStatusByOrderNoParams struct {
+	Status  int16  `json:"status"`
+	OrderNo string `json:"order_no"`
+}
+
+func (q *Queries) UpdateOrderStatusByOrderNo(ctx context.Context, arg UpdateOrderStatusByOrderNoParams) error {
+	_, err := q.db.ExecContext(ctx, updateOrderStatusByOrderNo, arg.Status, arg.OrderNo)
+	return err
+}
+
+const updatePaidAtAndStatusByOrderNo = `-- name: UpdatePaidAtAndStatusByOrderNo :exec
+UPDATE "order"
+SET paid_at = $1,
+    status = $2
+WHERE order_no = $3
+`
+
+type UpdatePaidAtAndStatusByOrderNoParams struct {
+	PaidAt  sql.NullTime `json:"paid_at"`
+	Status  int16        `json:"status"`
+	OrderNo string       `json:"order_no"`
+}
+
+func (q *Queries) UpdatePaidAtAndStatusByOrderNo(ctx context.Context, arg UpdatePaidAtAndStatusByOrderNoParams) error {
+	_, err := q.db.ExecContext(ctx, updatePaidAtAndStatusByOrderNo, arg.PaidAt, arg.Status, arg.OrderNo)
 	return err
 }

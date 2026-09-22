@@ -25,6 +25,15 @@ const (
 	ErrAlphaNumUnicode   ErrorCode = "USER_ALPHA_NUM_UNICODE"
 )
 
+// 商品领域错误代码
+
+const (
+	ErrProductNotFound  ErrorCode = "PRODUCT_NOT_FOUND"
+	ErrNoSkuPrice       ErrorCode = "HOTEL_NO_SKU_PRICE"
+	ErrNoStock          ErrorCode = "HOTEL_NO_STOCK"
+	ErrTicketNotSupport ErrorCode = "HOTEL_TICKET_NOT_SUPPORT"
+)
+
 // 订单领域错误代码
 const (
 	ErrOrderNotFound     ErrorCode = "ORDER_NOT_FOUND"
@@ -33,13 +42,4 @@ const (
 	ErrStartDatePast     ErrorCode = "ORDER_START_DATE_PAST"
 	ErrStartDateDisorder ErrorCode = "ORDER_START_DATE_DISORDER"
 	ErrBookingConflict   ErrorCode = "ORDER_BOOKING_CONFLICT"
-)
-
-// 酒店领域错误
-
-const (
-	ErrHotelSkuNotFound ErrorCode = "HOTEL_SKU_NOT_FOUND"
-	ErrNoSkuPrice       ErrorCode = "HOTEL_NO_SKU_PRICE"
-	ErrNoStock          ErrorCode = "HOTEL_NO_STOCK"
-	ErrTicketNotSupport ErrorCode = "HOTEL_TICKET_NOT_SUPPORT"
 )

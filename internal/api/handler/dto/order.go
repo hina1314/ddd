@@ -25,3 +25,9 @@ type CreateOrderResponse struct {
 	OrderID int64           `json:"order_id" validate:"required,numeric"`
 	Total   decimal.Decimal `json:"total" validate:"required,gt=0"`
 }
+
+// AddCartRequest 添加到购物车
+type AddCartRequest struct {
+	SkuID    int64 `json:"sku_id" validate:"required,numeric"`
+	Quantity int32 `json:"quantity" validate:"required,numeric"`
+}
