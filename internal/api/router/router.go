@@ -17,6 +17,9 @@ func SetupMiddleware(app *fiber.App, deps *di.Dependencies) {
 	}))
 
 	app.Use(middleware.Logger())
+	app.Use(middleware.Metrics())
+	app.Get("/metrics", middleware.MetricsHandler())
+
 	app.Use(middleware.Cors(deps.Config.AllowedOrigins))
 	app.Use(middleware.Locale(deps.Config.DefaultLocale))
 }

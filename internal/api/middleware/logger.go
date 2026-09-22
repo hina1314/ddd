@@ -23,6 +23,11 @@ func Logger() fiber.Handler {
 		status := responseStatus(c, err)
 		duration := time.Since(start)
 
+		// 成功的内部探测请求不写访问日志；失败时仍然记录。
+		if isQuietPath(c.Path()) && status < fiber.StatusBadRequest {
+			return err
+		}
+
 		level := slog.LevelInfo
 		switch {
 		case status >= fiber.StatusInternalServerError:
@@ -71,4 +76,13 @@ func responseStatus(c fiber.Ctx, err error) int {
 	}
 
 	return fiber.StatusInternalServerError
+}
+
+func isQuietPath(path string) bool {
+	switch path {
+	case "/metrics", "/livez", "/readyz":
+		return true
+	default:
+		return false
+	}
 }
