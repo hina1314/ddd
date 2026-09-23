@@ -26,17 +26,20 @@ func main() {
 			slog.NewJSONHandler(os.Stdout, nil),
 		).With("service", "study-api"),
 	)
+	slog.Info("application entrypoint reached")
 	// 加载配置
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	slog.Info("configuration loaded")
 
 	// 初始化依赖
 	deps, err := di.NewDependencies(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize dependencies: %v", err)
 	}
+	slog.Info("dependencies initialized")
 
 	// 创建 Fiber 服务器
 	server := deps.NewServer()
@@ -97,6 +100,7 @@ func main() {
 	// 监听放到另一个 goroutine，main 负责协调停机。
 	listenErr := make(chan error, 1)
 	go func() {
+		slog.Info("starting HTTP listener", "address", cfg.ServerAddress)
 		listenErr <- server.Listen(cfg.ServerAddress)
 	}()
 

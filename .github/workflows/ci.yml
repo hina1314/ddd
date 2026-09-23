@@ -17,6 +17,20 @@ jobs:
     name: Verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: study_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d study_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Check out repository
@@ -55,3 +69,83 @@ jobs:
         env:
           CGO_ENABLED: "0"
         run: go build -trimpath ./...
+
+      - name: Apply database migrations
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          for migration in db/migration/*.up.sql; do
+            echo "Applying $migration"
+            docker exec -i "$POSTGRES_CONTAINER" \
+              psql -v ON_ERROR_STOP=1 \
+              -U postgres \
+              -d study_test < "$migration"
+          done
+
+      - name: Build runnable API
+        env:
+          CGO_ENABLED: "0"
+        run: go build -trimpath -o ./build/study-api .
+
+      - name: Start API and verify readiness
+        env:
+          DB_SOURCE: "postgres://postgres:test-password@127.0.0.1:5432/study_test?sslmode=disable"
+          SERVER_ADDRESS: "127.0.0.1:3000"
+          DEBUG: "false"
+          GODEBUG: "inittrace=1"
+          GOTRACEBACK: "all"
+        run: |
+          cp app.env.example app.env
+
+          ./build/study-api > app.log 2>&1 &
+          app_pid=$!
+
+          show_diagnostics() {
+            echo "API process:"
+            ps -o pid,ppid,stat,etime,args -p "$app_pid" || true
+            echo "TCP listeners:"
+            ss -ltn || true
+            echo "Health endpoints:"
+            curl --noproxy '*' --silent --show-error --max-time 2 -i \
+              http://127.0.0.1:3000/livez || true
+            curl --noproxy '*' --silent --show-error --max-time 2 -i \
+              http://127.0.0.1:3000/readyz || true
+            echo "API startup log:"
+            if [ -s app.log ]; then
+              cat app.log
+            else
+              echo "(empty)"
+            fi
+          }
+
+          cleanup() {
+            kill -TERM "$app_pid" 2>/dev/null || true
+            wait "$app_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --noproxy '*' --fail --silent --output /dev/null \
+              http://127.0.0.1:3000/readyz; then
+              echo "API is ready and database connection succeeded"
+              exit 0
+            fi
+
+            if ! kill -0 "$app_pid" 2>/dev/null; then
+              echo "API exited before becoming ready"
+              show_diagnostics
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          echo "API did not become ready within 30 seconds"
+          show_diagnostics
+          if kill -0 "$app_pid" 2>/dev/null; then
+            echo "Go goroutine dump after SIGQUIT:"
+            kill -QUIT "$app_pid"
+            sleep 2
+            tail -n 200 app.log
+          fi
+          exit 1

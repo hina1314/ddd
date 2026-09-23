@@ -32,17 +32,15 @@ func CaptureStack(skip int) *StackTrace {
 	var stack []Frame
 	for {
 		frame, more := frames.Next()
-		if shouldSkipFrame(frame) {
-			continue
+		if !shouldSkipFrame(frame) {
+			file := filepath.Base(frame.File) // Use base name for brevity
+			function := simplifyFunctionName(frame.Function)
+			stack = append(stack, Frame{
+				File:     file,
+				Line:     frame.Line,
+				Function: function,
+			})
 		}
-
-		file := filepath.Base(frame.File) // Use base name for brevity
-		function := simplifyFunctionName(frame.Function)
-		stack = append(stack, Frame{
-			File:     file,
-			Line:     frame.Line,
-			Function: function,
-		})
 
 		if !more {
 			break
