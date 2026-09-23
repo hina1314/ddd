@@ -98,6 +98,24 @@ jobs:
           ./build/study-api > app.log 2>&1 &
           app_pid=$!
 
+          show_diagnostics() {
+            echo "API process:"
+            ps -o pid,ppid,stat,etime,args -p "$app_pid" || true
+            echo "TCP listeners:"
+            ss -ltn || true
+            echo "Health endpoints:"
+            curl --noproxy '*' --silent --show-error --max-time 2 -i \
+              http://127.0.0.1:3000/livez || true
+            curl --noproxy '*' --silent --show-error --max-time 2 -i \
+              http://127.0.0.1:3000/readyz || true
+            echo "API startup log:"
+            if [ -s app.log ]; then
+              cat app.log
+            else
+              echo "(empty)"
+            fi
+          }
+
           cleanup() {
             kill -TERM "$app_pid" 2>/dev/null || true
             wait "$app_pid" 2>/dev/null || true
@@ -105,16 +123,15 @@ jobs:
           trap cleanup EXIT
 
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error \
+            if curl --noproxy '*' --fail --silent --output /dev/null \
               http://127.0.0.1:3000/readyz; then
-              echo
               echo "API is ready and database connection succeeded"
               exit 0
             fi
 
             if ! kill -0 "$app_pid" 2>/dev/null; then
               echo "API exited before becoming ready"
-              cat app.log
+              show_diagnostics
               exit 1
             fi
 
@@ -122,5 +139,5 @@ jobs:
           done
 
           echo "API did not become ready within 30 seconds"
-          cat app.log
+          show_diagnostics
           exit 1
