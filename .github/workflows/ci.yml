@@ -92,6 +92,8 @@ jobs:
           DB_SOURCE: "postgres://postgres:test-password@127.0.0.1:5432/study_test?sslmode=disable"
           SERVER_ADDRESS: "127.0.0.1:3000"
           DEBUG: "false"
+          GODEBUG: "inittrace=1"
+          GOTRACEBACK: "all"
         run: |
           cp app.env.example app.env
 
@@ -140,4 +142,10 @@ jobs:
 
           echo "API did not become ready within 30 seconds"
           show_diagnostics
+          if kill -0 "$app_pid" 2>/dev/null; then
+            echo "Go goroutine dump after SIGQUIT:"
+            kill -QUIT "$app_pid"
+            sleep 2
+            tail -n 200 app.log
+          fi
           exit 1
