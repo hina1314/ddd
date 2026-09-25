@@ -32,7 +32,7 @@ build_target() {
   mkdir -p "$stage/config"
 
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
-    go build -trimpath -ldflags="-s -w" \
+    go build -trimpath -ldflags="-s -w -X main.version=${release_tag}" \
     -o "$stage/study-api${extension}" "$repo_root"
 
   cp -R "$repo_root/config/i18n" "$stage/config/i18n"

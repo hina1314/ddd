@@ -19,6 +19,9 @@ type databasePinger interface {
 	PingContext(context.Context) error
 }
 
+// Release 构建通过 -ldflags 注入 tag；本地构建保留 dev。
+var version = "dev"
+
 // main 是应用程序的入口点。
 func main() {
 	slog.SetDefault(
@@ -26,7 +29,7 @@ func main() {
 			slog.NewJSONHandler(os.Stdout, nil),
 		).With("service", "study-api"),
 	)
-	slog.Info("application entrypoint reached")
+	slog.Info("application entrypoint reached", "version", version)
 	// 加载配置
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
@@ -56,6 +59,7 @@ func main() {
 	})
 
 	server.Get("/readyz", func(c fiber.Ctx) error {
+		c.Set("X-App-Version", version)
 		if !accepting.Load() || !dbHealthy.Load() {
 			return c.Status(fiber.StatusServiceUnavailable).
 				SendString("not ready\n")

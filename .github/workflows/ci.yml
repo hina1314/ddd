@@ -127,6 +127,13 @@ jobs:
           for attempt in $(seq 1 30); do
             if curl --noproxy '*' --fail --silent --output /dev/null \
               http://127.0.0.1:3000/readyz; then
+              curl --noproxy '*' --fail --silent --dump-header readyz.headers \
+                --output /dev/null http://127.0.0.1:3000/readyz
+              if ! grep -qi '^X-App-Version: dev' readyz.headers; then
+                echo "Readiness response did not include the expected build version"
+                show_diagnostics
+                exit 1
+              fi
               echo "API is ready and database connection succeeded"
               exit 0
             fi
