@@ -63,6 +63,7 @@ jobs:
         run: |
           bash -n scripts/package-release.sh
           bash -n ops/docker/prepare.sh
+          bash -n ops/docker/deploy.sh
 
       - name: Check Compose configuration
         run: |
