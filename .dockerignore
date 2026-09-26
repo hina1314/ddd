@@ -1,6 +1,12 @@
+.git
+.github
 .idea
-.local/
+.local
 app.env
 ops/docker/.env
 ops/docker/postgres.env
 ops/docker/app.env
+build
+dist
+*.zip
+*.tar.gz

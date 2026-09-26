@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16.15-bookworm
+    restart: unless-stopped
+    env_file:
+      - ./postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  migrate:
+    image: migrate/migrate:v4.19.1
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./app.env
+    volumes:
+      - ../../db/migration:/migrations:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["exec migrate -path=/migrations -database=\"$${DB_SOURCE}\" up"]
+    restart: "no"
+
+  api:
+    image: ${STUDY_IMAGE:?Set STUDY_IMAGE in ops/docker/.env}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./app.env:/app/app.env:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
