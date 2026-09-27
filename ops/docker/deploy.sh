@@ -23,13 +23,14 @@ cd "$compose_dir"
 exec 9>/var/lock/study-deploy.lock
 flock -n 9 || { echo "another deployment is running" >&2; exit 1; }
 
-git_safe=(git -c "safe.directory=$repo" -C "$repo")
-checkout_sha=$("${git_safe[@]}" rev-parse HEAD)
-checkout_changes=$("${git_safe[@]}" status --porcelain --untracked-files=all)
+cd "$repo"
+checkout_sha=$(git -c "safe.directory=$repo" rev-parse HEAD)
+checkout_changes=$(git -c "safe.directory=$repo" status --porcelain --untracked-files=all)
 if [[ $checkout_sha != "$sha" || -n $checkout_changes ]]; then
   echo "checkout is not the requested clean commit $sha" >&2
   exit 1
 fi
+cd "$compose_dir"
 
 env_file="$compose_dir/.env"
 if [[ ! -f $env_file ]] || [[ $(grep -c '^STUDY_IMAGE=' "$env_file") != 1 ]]; then
