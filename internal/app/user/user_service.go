@@ -8,8 +8,9 @@ import (
 	"github.com/hina1314/ddd/internal/api/handler/dto"
 	"github.com/hina1314/ddd/internal/domain/user/repository"
 	"github.com/hina1314/ddd/internal/domain/user/service"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	"github.com/hina1314/ddd/token"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/kit/errors"
 )
 
 type UserService struct {
@@ -43,7 +44,7 @@ func (s *UserService) GetUserByID(ctx context.Context, userId int64) (*dto.UserR
 	record, err := s.userRepo.GetByID(ctx, userId)
 	if err != nil {
 		if stdErrors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New(errors.ErrUserNotFound, "user not found")
+			return nil, errors.New(usererrors.ErrUserNotFound, "user not found")
 		}
 		return nil, err
 	}

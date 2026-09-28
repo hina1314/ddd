@@ -7,8 +7,9 @@ import (
 	"github.com/hina1314/ddd/internal/api/handler/dto"
 	"github.com/hina1314/ddd/internal/app/assemble"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
-	"github.com/hina1314/ddd/util"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
+	"github.com/hina1314/kit/errors"
+	"github.com/hina1314/kit/password"
 )
 
 func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCommand) (*dto.UserResponse, error) {
@@ -29,7 +30,7 @@ func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCo
 	user, err = s.userRepo.GetByID(ctx, cmd.ID)
 	if err != nil {
 		if stdErrors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New(errors.ErrUserNotFound, "user not found")
+			return nil, errors.New(usererrors.ErrUserNotFound, "user not found")
 		}
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCo
 	}
 
 	if cmd.Password != nil {
-		passwordHash, err := util.HashPassword(*cmd.Password)
+		passwordHash, err := password.HashPassword(*cmd.Password)
 		if err != nil {
 			return nil, errors.Wrap(err, errors.ErrInvalidInput, "invalid password")
 		}
@@ -58,7 +59,7 @@ func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCo
 	record, err := s.userUpdateService.UpdateUser(ctx, user)
 	if err != nil {
 		if stdErrors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New(errors.ErrUserNotFound, "user not found")
+			return nil, errors.New(usererrors.ErrUserNotFound, "user not found")
 		}
 		return nil, err
 	}

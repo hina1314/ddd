@@ -6,7 +6,8 @@ import (
 	stdErr "errors"
 	"github.com/hina1314/ddd/internal/api/handler/dto"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
+	"github.com/hina1314/kit/errors"
 )
 
 func (s *UserService) RegisterUser(ctx context.Context, phone, email, password string) (*dto.UserResponse, error) {
@@ -26,7 +27,7 @@ func (s *UserService) RegisterUser(ctx context.Context, phone, email, password s
 	}
 
 	if user != nil {
-		return nil, errors.New(errors.ErrUserAlreadyExists, "user already exists")
+		return nil, errors.New(usererrors.ErrUserAlreadyExists, "user already exists")
 	}
 
 	user, err = s.userRegisterService.RegisterUser(ctx, phone, email, password)

@@ -2,6 +2,8 @@
 
 可直接复制作为新项目起点的 Go API 模板。核心只保留用户注册、登录、资料维护和通用基础设施，不包含商城业务。
 
+业务模板通过 Go 模块依赖使用独立仓库 [kit](https://github.com/hina1314/kit)。kit 维护错误、响应、日志、国际化、CORS、连接池、指标、健康检查、停机和密码工具；业务项目维护用户规则、SQL、仓储、Token 与装配。本仓库不再包含框架源码，也不使用本地 `replace`。目前固定 kit 已推送提交的伪版本，后续可以更新模块版本获得框架修复。详见 [框架升级与迁移](docs/framework-upgrades.md)。
+
 ## 技术栈
 
 - Go 1.26、Fiber v3
@@ -25,6 +27,18 @@ Linux/macOS：
 ```bash
 ./scripts/init-project.sh github.com/your-name/your-project your-project
 ```
+
+上述命令保留模板 `go.mod` 中固定的 kit 版本。kit 发布版本标签后，可以在初始化时选择该版本：
+
+```powershell
+./scripts/init-project.ps1 -Module github.com/your-name/your-project -AppName your-project -KitVersion v0.1.0
+```
+
+```bash
+./scripts/init-project.sh github.com/your-name/your-project your-project v0.1.0
+```
+
+`v0.1.0` 是发布后的用法示例，当前 kit 尚无版本标签。默认版本为 `v0.0.0-20260928124721-8410a2405303`；脚本也接受伪版本。初始化脚本只改业务模块导入，保留 `github.com/hina1314/kit` 引用；PowerShell 的旧参数 `-FrameworkVersion` 作为 `-KitVersion` 的别名兼容。
 
 复制配置并修改数据库连接和 32 字节令牌密钥：
 
@@ -59,8 +73,11 @@ db/migration/           数据库迁移
 db/query/               手写 SQL
 db/model/               sqlc 生成代码
 internal/api/           HTTP handler、中间件、路由
+internal/api/presentation/  业务错误状态映射及响应装配
+internal/api/validation/    业务校验规则与校验错误转换
 internal/app/           应用用例编排
 internal/domain/        领域实体和接口
+internal/domain/user/usererrors/  用户错误码（保留原 API 值）
 internal/infra/         PostgreSQL 仓储实现
 internal/di/            Wire 依赖注入
 token/                  PASETO
@@ -69,6 +86,8 @@ ops/                    Docker、Prometheus、Nginx 运维文件
 
 新增业务模块时，先写迁移和查询，再运行 `make sqlc`；补齐领域、仓储、应用服务和 handler 后运行 `make wire`。不要手改 `db/model` 和 `internal/di/wire_gen.go`。
 
+Wire 通过带 `tools` 构建标签的 `tools.go` 保留在模块依赖中，版本由 `go.mod` 固定。使用 `go run github.com/google/wire/cmd/wire ./internal/di` 运行，兼容尚不支持 `go.mod` 中 `tool` 指令的 IDE。其 `x/tools` 版本也在项目中固定；不要给生成命令额外加 `@版本`，以免绕开项目依赖选择并触发旧生成器与当前 Go 工具链的兼容问题。
+
 ## 质量检查
 
 ```bash
@@ -76,6 +95,12 @@ make check
 ```
 
 CI 会检查格式、`go vet`、sqlc/Wire 生成结果、竞态测试、数据库迁移、构建和真实 PostgreSQL 仓储测试。本机没有 PostgreSQL 时，集成测试会自动跳过。
+
+模板的 `make test`、`make vet` 和 CI 检查业务模块；kit 的自身测试由独立仓库 CI 运行。模板测试会使用固定版本的 kit 验证业务兼容性。也可以手动运行：
+
+```bash
+go test ./...
+```
 
 ## 管理后台建议
 

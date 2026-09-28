@@ -9,7 +9,7 @@ import (
 	"github.com/hina1314/ddd/internal/app/assemble"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
 	"github.com/hina1314/ddd/internal/domain/user/service"
-	apperrors "github.com/hina1314/ddd/util/errors"
+	apperrors "github.com/hina1314/kit/errors"
 	"github.com/stretchr/testify/require"
 )
 

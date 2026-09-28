@@ -8,20 +8,23 @@ package di
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/hina1314/ddd/config"
 	"github.com/hina1314/ddd/db/model"
 	"github.com/hina1314/ddd/internal/api/handler"
-	"github.com/hina1314/ddd/internal/api/response"
+	"github.com/hina1314/ddd/internal/api/presentation"
+	"github.com/hina1314/ddd/internal/api/validation"
 	user2 "github.com/hina1314/ddd/internal/app/user"
 	"github.com/hina1314/ddd/internal/domain/user/service"
 	"github.com/hina1314/ddd/internal/infra/user"
 	"github.com/hina1314/ddd/token"
-	"github.com/hina1314/ddd/util/errors"
-	"github.com/hina1314/ddd/util/i18n"
+	"github.com/hina1314/kit/database"
+	"github.com/hina1314/kit/errors"
+	"github.com/hina1314/kit/i18n"
+	"github.com/hina1314/kit/response"
+	"log/slog"
 	"time"
 )
 
@@ -31,30 +34,33 @@ import (
 
 // Injectors from wire.go:
 
-func initializeDependencies(cfg config.Config) (*Dependencies, error) {
-	sqlStore, err := newDB(cfg)
+func initializeDependencies(cfg config.Config) (*Dependencies, func(), error) {
+	sqlStore, cleanup, err := newDB(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	errorHandler := newErrorHandler(cfg)
 	fileTranslator := newFileTranslator()
 	translationService, err := newTranslationService(fileTranslator, cfg)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
-	responseHandler := response.NewResponseHandler(errorHandler, translationService)
+	responseHandler := presentation.NewResponseHandler(errorHandler, translationService)
 	userRepository := user.NewUserRepository(sqlStore)
 	userRegisterService := service.NewUserRegisterService(userRepository)
 	userLoginService := service.NewUserLoginService(userRepository)
 	userUpdateService := service.NewUserUpdateService(userRepository)
 	maker, err := newTokenMaker(cfg)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, maker)
 	validate, err := newValidator()
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
 	app := newFiberApp(responseHandler, cfg)
@@ -66,7 +72,9 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		Config:          cfg,
 		server:          app,
 	}
-	return dependencies, nil
+	return dependencies, func() {
+		cleanup()
+	}, nil
 }
 
 // wire.go:
@@ -91,7 +99,7 @@ func (d *Dependencies) NewServer() *fiber.App {
 
 // NewDependencies 初始化所有依赖。
 func NewDependencies(cfg config.Config) (*Dependencies, error) {
-	deps, err := initializeDependencies(cfg)
+	deps, _, err := initializeDependencies(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -113,33 +121,23 @@ func newFiberApp(
 	})
 }
 
-func newDB(cfg config.Config) (*model.SQLStore, error) {
-	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
+func newDB(cfg config.Config) (*model.SQLStore, func(), error) {
+	db, err := database.Open(context.Background(), database.Config{
+		Driver: cfg.DBDriver, Source: cfg.DBSource,
+		MaxOpenConns: cfg.DBMaxOpenConns, MaxIdleConns: cfg.DBMaxIdleConns,
+		ConnMaxLifetime: cfg.DBConnMaxLifetime, ConnMaxIdleTime: cfg.DBConnMaxIdleTime,
+		PingTimeout: 3 * time.Second,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, nil, err
 	}
-	db.SetMaxOpenConns(cfg.DBMaxOpenConns)
-	db.SetMaxIdleConns(cfg.DBMaxIdleConns)
-	db.SetConnMaxLifetime(cfg.DBConnMaxLifetime)
-	db.SetConnMaxIdleTime(cfg.DBConnMaxIdleTime)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	if err := db.PingContext(ctx); err != nil {
-
-		if closeErr := db.Close(); closeErr != nil {
-			return nil, fmt.Errorf(
-				"ping database: %w; close failed pool: %v",
-				err,
-				closeErr,
-			)
+	cleanup := func() {
+		if err := db.Close(); err != nil {
+			slog.Error("close database after dependency initialization failure", "error", err)
 		}
-
-		return nil, fmt.Errorf("ping database: %w", err)
 	}
-
-	return model.NewStore(db), nil
+	return model.NewStore(db), cleanup, nil
 }
 
 func newTokenMaker(cfg config.Config) (token.Maker, error) {
@@ -163,7 +161,7 @@ func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n
 
 func newValidator() (*validator.Validate, error) {
 	v := validator.New()
-	if err := v.RegisterValidation("phone", errors.PhoneValidator); err != nil {
+	if err := v.RegisterValidation("phone", validation.PhoneValidator); err != nil {
 		return nil, fmt.Errorf("register phone validation: %w", err)
 	}
 	return v, nil

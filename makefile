@@ -1,6 +1,5 @@
 DB_SOURCE ?=
 SQLC_VERSION := v1.31.1
-WIRE_VERSION := v0.6.0
 
 .PHONY: generate sqlc wire test vet fmt check migrate_init migrate_up migrate_down
 
@@ -10,7 +9,7 @@ sqlc:
 	go run github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION) generate
 
 wire:
-	go run github.com/google/wire/cmd/wire@$(WIRE_VERSION) ./internal/di
+	go run github.com/google/wire/cmd/wire ./internal/di
 
 fmt:
 	gofmt -w .

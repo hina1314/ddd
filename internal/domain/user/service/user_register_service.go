@@ -5,8 +5,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
 	"github.com/hina1314/ddd/internal/domain/user/repository"
-	"github.com/hina1314/ddd/util"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/kit/errors"
+	passwordutil "github.com/hina1314/kit/password"
 )
 
 // UserRegisterService 用户领域服务
@@ -27,7 +27,7 @@ func (s *UserRegisterService) RegisterUser(ctx context.Context, phone, email, pa
 		user *entity.User
 		err  error
 	)
-	passwordHash, err := util.HashPassword(password)
+	passwordHash, err := passwordutil.HashPassword(password)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrInvalidInput, "invalid password")
 	}

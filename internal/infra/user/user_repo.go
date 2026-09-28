@@ -6,8 +6,9 @@ import (
 	"github.com/hina1314/ddd/db/model"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
 	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	"github.com/hina1314/ddd/internal/infra"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/kit/errors"
 	"time"
 )
 
@@ -86,7 +87,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *entity.User) error {
 	result, err := q.CreateUser(ctx, arg)
 	if err != nil {
 		if infra.IsDuplicateKeyError(err) {
-			return errors.New(errors.ErrUserAlreadyExists, "User already exists")
+			return errors.New(usererrors.ErrUserAlreadyExists, "User already exists")
 		}
 		return err
 	}
@@ -108,7 +109,7 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, u *entity.User) error {
 	rows, err := r.db.Querier(ctx).UpdateUser(ctx, arg)
 	if err != nil {
 		if infra.IsDuplicateKeyError(err) {
-			return errors.New(errors.ErrUserAlreadyExists, "User already exists")
+			return errors.New(usererrors.ErrUserAlreadyExists, "User already exists")
 		}
 		return err
 	}

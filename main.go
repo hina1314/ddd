@@ -2,217 +2,99 @@ package main
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v3"
-	"github.com/hina1314/ddd/config"
-	"github.com/hina1314/ddd/internal/api/middleware"
-	"github.com/hina1314/ddd/internal/api/router"
-	"github.com/hina1314/ddd/internal/di"
-	"log"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
-	"sync/atomic"
 	"syscall"
 	"time"
-)
 
-type databasePinger interface {
-	PingContext(context.Context) error
-}
+	"github.com/gofiber/fiber/v3"
+	"github.com/hina1314/ddd/config"
+	"github.com/hina1314/ddd/internal/api/router"
+	"github.com/hina1314/ddd/internal/di"
+	"github.com/hina1314/kit/health"
+	"github.com/hina1314/kit/lifecycle"
+	"github.com/hina1314/kit/metrics"
+)
 
 // Release 构建通过 -ldflags 注入 tag；本地构建保留 dev。
 var version = "dev"
 
-// main 是应用程序的入口点。
 func main() {
-	// 加载配置
+	if err := run(); err != nil {
+		slog.Error("application failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("shutdown completed")
+}
+
+// run 负责业务装配和资源所有权，公共包负责健康探测与停机协调。
+func run() (result error) {
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		return err
 	}
-	slog.SetDefault(
-		slog.New(
-			slog.NewJSONHandler(os.Stdout, nil),
-		).With("service", cfg.AppName, "environment", cfg.Environment),
-	)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)).
+		With("service", cfg.AppName, "environment", cfg.Environment))
 	slog.Info("application entrypoint reached", "version", version)
 	slog.Info("configuration loaded")
 
-	// 初始化依赖
 	deps, err := di.NewDependencies(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize dependencies: %v", err)
+		return err
 	}
+	// lifecycle.Run 返回时，HTTP 关闭流程与健康监控停止均已完成。
+	// 入口后续装配或监听启动失败也会走此清理路径。
+	defer func() {
+		if err := deps.DB.Close(); err != nil {
+			result = errors.Join(result, err)
+		} else {
+			slog.Info("database pool closed")
+		}
+	}()
 	slog.Info("dependencies initialized")
 
-	// 创建 Fiber 服务器
-	server := deps.NewServer()
-	if err := middleware.RegisterDatabaseMetrics(deps.DB); err != nil {
-		log.Fatalf("Failed to register database metrics: %v", err)
+	instrumentation, err := metrics.New(metrics.Config{})
+	if err != nil {
+		return err
 	}
-	// 设置中间件
-	router.SetupMiddleware(server, deps)
+	if err := instrumentation.RegisterDatabase(deps.DB); err != nil {
+		return err
+	}
+	checks, err := health.New(health.Config{
+		Version: version, Interval: cfg.HealthCheckInterval, Timeout: cfg.HealthCheckTimeout,
+	}, health.Probe{Name: "database", Check: deps.DB.PingContext, InitiallyHealthy: true})
+	if err != nil {
+		return err
+	}
 
-	var accepting atomic.Bool
-	var dbHealthy atomic.Bool
-
-	dbHealthy.Store(true) // 启动时的 PingContext 已经成功
-
-	server.Get("/livez", func(c fiber.Ctx) error {
-		return c.SendString("alive\n")
-	})
-
-	server.Get("/readyz", func(c fiber.Ctx) error {
-		c.Set("X-App-Version", version)
-		if !accepting.Load() || !dbHealthy.Load() {
-			return c.Status(fiber.StatusServiceUnavailable).
-				SendString("not ready\n")
-		}
-
-		return c.SendString("ready\n")
-	})
-
-	// 设置业务路由
+	server := deps.NewServer()
+	router.SetupMiddleware(server, deps, instrumentation)
+	server.Get("/livez", checks.Liveness)
+	server.Get("/readyz", checks.Readiness)
 	router.Setup(server, deps)
-
-	// 仅在本地实验时启用，不访问数据库。
 	if os.Getenv("SHUTDOWN_LAB") == "1" {
 		server.Get("/_lab/slow", func(c fiber.Ctx) error {
-			log.Println("[lab] request started")
+			slog.Info("lab request started")
 			time.Sleep(10 * time.Second)
-			log.Println("[lab] work finished, sending response")
+			slog.Info("lab work finished")
 			return c.SendString("completed\n")
 		})
-
 		server.Get("/_lab/error", func(c fiber.Ctx) error {
-			return fiber.NewError(
-				fiber.StatusInternalServerError,
-				"simulated lab failure",
-			)
+			return fiber.NewError(fiber.StatusInternalServerError, "simulated lab failure")
 		})
 	}
 
-	healthCtx, stopHealth := context.WithCancel(context.Background())
-	defer stopHealth()
-
-	go monitorDatabase(
-		healthCtx,
-		deps.DB,
-		&dbHealthy,
-		cfg.HealthCheckInterval,
-		cfg.HealthCheckTimeout,
-	)
-
-	accepting.Store(true)
-
-	// 启动服务器
-	// 接收 Ctrl+C，让程序自己安排退出。
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(quit)
-
-	// 监听放到另一个 goroutine，main 负责协调停机。
-	listenErr := make(chan error, 1)
-	go func() {
-		slog.Info("starting HTTP listener", "address", cfg.ServerAddress)
-		listenErr <- server.Listen(cfg.ServerAddress)
-	}()
-
-	select {
-	case <-quit:
-		accepting.Store(false)
-		stopHealth()
-
-		log.Println("[shutdown] readiness disabled, waiting for traffic removal")
-		time.Sleep(cfg.TrafficDrainDelay)
-		log.Println("[shutdown] draining active requests")
-	case err := <-listenErr:
-		if err != nil {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-		return
-	}
-
-	exitCode := 0
-
-	// 先完成或中断 HTTP 请求，此时数据库仍保持可用。
-	if err := server.ShutdownWithTimeout(cfg.ShutdownTimeout); err != nil {
-		log.Printf("[shutdown] HTTP server failed or timed out: %v", err)
-		exitCode = 1
-	}
-
-	// HTTP 请求处理结束后，再关闭数据库连接池。
-	if err := deps.DB.Close(); err != nil {
-		log.Printf("[shutdown] database close failed: %v", err)
-		exitCode = 1
-	} else {
-		log.Println("[shutdown] database pool closed")
-	}
-
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
-
-	log.Println("[shutdown] completed")
-}
-
-func monitorDatabase(
-	ctx context.Context,
-	db databasePinger,
-	healthy *atomic.Bool,
-	interval time.Duration,
-	timeout time.Duration,
-) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	failures := 0
-	successes := 0
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case <-ticker.C:
-			probeCtx, cancel := context.WithTimeout(ctx, timeout)
-			err := db.PingContext(probeCtx)
-			cancel()
-
-			if ctx.Err() != nil {
-				return
-			}
-
-			if err != nil {
-				successes = 0
-				failures++
-
-				if failures >= 3 {
-					failures = 3
-
-					if healthy.CompareAndSwap(true, false) {
-						log.Printf(
-							"[health] database unhealthy after 3 failures: %v",
-							err,
-						)
-					}
-				}
-
-				continue
-			}
-
-			failures = 0
-			successes++
-
-			if successes >= 2 {
-				successes = 2
-
-				if healthy.CompareAndSwap(false, true) {
-					log.Println(
-						"[health] database healthy after 2 successes",
-					)
-				}
-			}
-		}
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return lifecycle.Run(ctx, lifecycle.Service{
+		Listen: func() error {
+			slog.Info("starting HTTP listener", "address", cfg.ServerAddress)
+			return server.Listen(cfg.ServerAddress)
+		},
+		Shutdown:     server.ShutdownWithTimeout,
+		SetAccepting: checks.SetAccepting,
+		Monitor:      checks.Run,
+	}, lifecycle.Config{TrafficDrainDelay: cfg.TrafficDrainDelay, ShutdownTimeout: cfg.ShutdownTimeout})
 }

@@ -6,11 +6,12 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/hina1314/ddd/internal/api/handler/dto"
-	"github.com/hina1314/ddd/internal/api/response"
 	"github.com/hina1314/ddd/internal/app/assemble"
 	"github.com/hina1314/ddd/internal/app/user"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	"github.com/hina1314/ddd/util/context"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/kit/errors"
+	"github.com/hina1314/kit/response"
 )
 
 // UserHandler 处理用户相关的 HTTP 请求。
@@ -41,12 +42,12 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	switch req.Type {
 	case 1: // phone
 		if req.Phone == "" {
-			return h.res.HandleError(c, errors.New(errors.ErrPhoneEmpty, "phone is empty"))
+			return h.res.HandleError(c, errors.New(usererrors.ErrPhoneEmpty, "phone is empty"))
 		}
 		req.Email = ""
 	case 2: // email
 		if req.Email == "" {
-			return h.res.HandleError(c, errors.New(errors.ErrEmailEmpty, "email is empty"))
+			return h.res.HandleError(c, errors.New(usererrors.ErrEmailEmpty, "email is empty"))
 		}
 		req.Phone = ""
 	default:
@@ -76,12 +77,12 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 	switch req.Type {
 	case 1: // phone
 		if req.Phone == "" {
-			return h.res.HandleError(c, errors.New(errors.ErrPhoneEmpty, "phone is empty"))
+			return h.res.HandleError(c, errors.New(usererrors.ErrPhoneEmpty, "phone is empty"))
 		}
 		req.Email = ""
 	case 2: // email
 		if req.Email == "" {
-			return h.res.HandleError(c, errors.New(errors.ErrEmailEmpty, "email is empty"))
+			return h.res.HandleError(c, errors.New(usererrors.ErrEmailEmpty, "email is empty"))
 		}
 		req.Phone = ""
 	default:

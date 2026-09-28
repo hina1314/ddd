@@ -7,26 +7,29 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/google/uuid"
+	"github.com/hina1314/kit/metrics"
+	kitmiddleware "github.com/hina1314/kit/middleware"
 
 	"github.com/hina1314/ddd/internal/api/handler"
 	"github.com/hina1314/ddd/internal/api/middleware"
 	"github.com/hina1314/ddd/internal/di"
-	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/kit/errors"
 )
 
-func SetupMiddleware(app *fiber.App, deps *di.Dependencies) {
+func SetupMiddleware(app *fiber.App, deps *di.Dependencies, instrumentation *metrics.Metrics) {
 	// 必须最先生成 request_id，后面的日志才能读取它。
 	app.Use(requestid.New(requestid.Config{
 		Generator: uuid.NewString,
 	}))
-	app.Use(middleware.Logger())
+	// 指标在统一错误处理完成后读取最终状态。
+	app.Use(instrumentation.Middleware())
+	app.Use(kitmiddleware.Logger())
 	// recover 在 Logger 内层运行，确保 panic 恢复后也能输出请求日志。
 	app.Use(recover.New())
-	app.Use(middleware.Metrics())
 	app.Use(helmet.New())
-	app.Use(middleware.Cors(deps.Config.AllowedOrigins))
-	app.Use(middleware.Locale(deps.Config.DefaultLocale, deps.Config.SupportedLocales))
-	app.Get("/metrics", middleware.MetricsAuth(deps.Config.MetricsToken), middleware.MetricsHandler())
+	app.Use(kitmiddleware.Cors(deps.Config.AllowedOrigins))
+	app.Use(kitmiddleware.Locale(deps.Config.DefaultLocale, deps.Config.SupportedLocales))
+	app.Get("/metrics", metrics.Auth(deps.Config.MetricsToken), instrumentation.Handler())
 }
 
 // Setup 只负责注册业务路由。
