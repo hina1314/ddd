@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	stdErr "errors"
-	"study/internal/domain/user/entity"
-	"study/internal/domain/user/repository"
-	"study/util"
-	"study/util/errors"
+	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/ddd/util"
+	"github.com/hina1314/ddd/util/errors"
 )
 
 // UserLoginService 用户登录务
@@ -35,7 +35,7 @@ func (s *UserLoginService) AuthenticateUser(ctx context.Context, phone, email, p
 
 	if err != nil {
 		if stdErr.Is(err, sql.ErrNoRows) {
-			return nil, errors.New(errors.ErrUserNotFound, "User not found")
+			return nil, errors.New(errors.ErrUserInfoIncorrect, "incorrect credentials")
 		}
 		return nil, err
 	}

@@ -43,7 +43,7 @@ jobs:
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ssh_dir="$RUNNER_TEMP/study-deploy-ssh"
+          ssh_dir="$RUNNER_TEMP/app-deploy-ssh"
           install -m 700 -d "$ssh_dir"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
@@ -59,7 +59,7 @@ jobs:
             "$DEPLOY_USER@$DEPLOY_HOST" "bash -se -- $DEPLOY_SHA" <<'REMOTE'
           set -euo pipefail
           sha=$1
-          repo=/opt/apps/ddd
+          repo=/opt/apps/app
           cd "$repo"
           old_sha=$(git rev-parse HEAD)
           test -z "$(git status --porcelain --untracked-files=all)"
@@ -69,7 +69,7 @@ jobs:
             exit 0
           fi
           git checkout --detach "$sha"
-          if ! sudo -n /usr/local/sbin/study-deploy "$sha"; then
+          if ! sudo -n /usr/local/sbin/app-deploy "$sha"; then
             git checkout --detach "$old_sha" || true
             exit 1
           fi

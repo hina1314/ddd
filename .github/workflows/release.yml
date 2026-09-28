@@ -57,6 +57,12 @@ jobs:
             exit 1
           fi
 
+      - name: Verify generated code
+        run: |
+          go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 generate
+          go run github.com/google/wire/cmd/wire@v0.6.0 ./internal/di
+          git diff --exit-code -- db/model internal/di/wire_gen.go
+
       - name: Vet
         run: go vet ./...
 

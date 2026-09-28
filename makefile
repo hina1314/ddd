@@ -1,16 +1,37 @@
-postgres = "postgres://postgres:123456@127.0.0.1:5432/postgres?sslmode=disable"
+DB_SOURCE ?=
+SQLC_VERSION := v1.31.1
+WIRE_VERSION := v0.6.0
 
-migrate_init:
-	migrate create -ext sql -dir ./db/migration -seq $(name)
+.PHONY: generate sqlc wire test vet fmt check migrate_init migrate_up migrate_down
 
-migrate_up:
-	migrate -path db/migration -database $(postgres) --verbose up
-
-migrate_down:
-	migrate -path db/migration -database $(postgres) --verbose down
+generate: sqlc wire
 
 sqlc:
-	sqlc generate
+	go run github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION) generate
+
 wire:
-	wire gen ./internal/di/wire.go
-.PHONY: code migrate_up migrate_down sqlc
+	go run github.com/google/wire/cmd/wire@$(WIRE_VERSION) ./internal/di
+
+fmt:
+	gofmt -w .
+
+test:
+	go test ./...
+
+vet:
+	go vet ./...
+
+check: generate fmt vet test
+	git diff --exit-code -- db/model internal/di/wire_gen.go
+
+migrate_init:
+	@test -n "$(name)" || (echo "name is required" && exit 1)
+	migrate create -ext sql -dir ./db/migration -seq "$(name)"
+
+migrate_up:
+	@test -n "$(DB_SOURCE)" || (echo "DB_SOURCE is required" && exit 1)
+	migrate -path db/migration -database "$(DB_SOURCE)" --verbose up
+
+migrate_down:
+	@test -n "$(DB_SOURCE)" || (echo "DB_SOURCE is required" && exit 1)
+	migrate -path db/migration -database "$(DB_SOURCE)" --verbose down 1

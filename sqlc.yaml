@@ -8,10 +8,6 @@ sql:
         package: "model"
         out: "./db/model"
         emit_exact_table_names: false #If true, struct names will mirror table names. Otherwise, sqlc attempts to singularize plural table names. Defaults to false.
-        emit_json_tags: true
+        emit_json_tags: false
         emit_interface: true
-        overrides:
-          - db_type: "smallint"
-            go_type: "int16"
-          - db_type: "pg_catalog.numeric"
-            go_type: "github.com/shopspring/decimal.Decimal"
+        sql_package: "database/sql"

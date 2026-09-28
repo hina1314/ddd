@@ -3,17 +3,16 @@ package middleware
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v3"
+	"github.com/hina1314/ddd/internal/api/response"
+	"github.com/hina1314/ddd/token"
+	"github.com/hina1314/ddd/util/context"
+	"github.com/hina1314/ddd/util/errors"
 	"strings"
-	"study/internal/api/response"
-	"study/token"
-	"study/util/context"
-	"study/util/errors"
 )
 
 const (
 	authorizationHeaderKey  = "authorization"
 	authorizationTypeBearer = "bearer"
-	AuthorizationPayloadKey = "authorization_payload"
 )
 
 func Auth(res *response.ResponseHandler, tokenMaker token.Maker) fiber.Handler {
@@ -25,7 +24,7 @@ func Auth(res *response.ResponseHandler, tokenMaker token.Maker) fiber.Handler {
 		}
 
 		fields := strings.Fields(authorizationHeader)
-		if len(fields) < 2 {
+		if len(fields) != 2 {
 			err := errors.New(errors.ErrUnauthorized, "invalid authorization header format")
 			return res.HandleError(ctx, err)
 		}
@@ -43,7 +42,7 @@ func Auth(res *response.ResponseHandler, tokenMaker token.Maker) fiber.Handler {
 			return res.HandleError(ctx, err)
 		}
 
-		ctx.Locals(AuthorizationPayloadKey, payload)
+		ctx.Locals(context.AuthorizationPayloadKey, payload)
 		newCtx := context.WithAuthPayload(ctx.Context(), payload)
 		ctx.SetContext(newCtx)
 

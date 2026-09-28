@@ -3,8 +3,8 @@ package context
 import (
 	"context"
 	"github.com/gofiber/fiber/v3"
-	"study/token"
-	"study/util/errors"
+	"github.com/hina1314/ddd/token"
+	"github.com/hina1314/ddd/util/errors"
 )
 
 // contextKey 定义上下文键类型，防止冲突。

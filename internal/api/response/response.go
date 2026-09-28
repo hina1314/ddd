@@ -3,13 +3,13 @@ package response
 import (
 	stdErr "errors"
 	"fmt"
-	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
-	"study/util/errors"
-	"study/util/i18n"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
+	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/ddd/util/i18n"
 )
 
 // Response 定义响应的结构。
@@ -24,9 +24,10 @@ type Response struct {
 func (h *ResponseHandler) Success(c fiber.Ctx, msg string, data interface{}) error {
 	message := h.TranslationService.T(c.Context(), msg, nil)
 	response := Response{
-		Code: 0,
-		Msg:  message,
-		Data: data,
+		Code:      0,
+		Msg:       message,
+		Data:      data,
+		RequestID: requestid.FromContext(c),
 	}
 	return c.Status(fiber.StatusOK).JSON(response)
 }
@@ -60,9 +61,16 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 		switch domainErr.Code {
 		case errors.ErrUnauthorized:
 			statusCode = http.StatusUnauthorized
+		case errors.ErrRateLimited:
+			statusCode = http.StatusTooManyRequests
 		case errors.ErrUserAlreadyExists:
 			statusCode = http.StatusConflict
-		case errors.ErrInvalidInput, errors.ErrUserInfoIncorrect:
+		case errors.ErrUserNotFound:
+			statusCode = http.StatusNotFound
+		case errors.ErrInvalidInput, errors.ErrRequired, errors.ErrInteger, errors.ErrDateFormat,
+			errors.ErrUserInfoIncorrect, errors.ErrMinLength, errors.ErrPhoneEmpty,
+			errors.ErrPhoneFormat, errors.ErrEmailEmpty, errors.ErrEmailFormat,
+			errors.ErrAlphaNumUnicode:
 			statusCode = http.StatusBadRequest
 		case errors.ErrTxError, errors.ErrDatabaseError:
 			statusCode = http.StatusInternalServerError
@@ -105,6 +113,18 @@ func (h *ResponseHandler) HandleError(ctx fiber.Ctx, err error) error {
 
 	// 获取调试追踪
 	debugTrace := h.ErrorHandler.GetErrorTrace(domainErr)
+	if statusCode >= http.StatusBadRequest {
+		info := &ErrorLog{
+			Code:    domainErr.Code,
+			Message: domainErr.Message,
+		}
+		if statusCode >= http.StatusInternalServerError {
+			info.Err = err
+		}
+
+		// 4xx 记录业务错误原因，不记录请求体或未经脱敏的底层 Cause。
+		ctx.Locals(errorLogKey{}, info)
+	}
 
 	response := Response{
 		Code:      domainErr.Code,

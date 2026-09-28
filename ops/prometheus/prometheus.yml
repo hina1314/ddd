@@ -15,7 +15,7 @@ alerting:
             - 127.0.0.1:9093
 
 scrape_configs:
-  - job_name: study-api
+  - job_name: app-api
     metrics_path: /metrics
 
     static_configs:

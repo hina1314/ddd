@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
+	"github.com/hina1314/ddd/internal/api/response"
 )
 
 // Logger 这里有几个生产日志原则：
@@ -20,6 +21,11 @@ func Logger() fiber.Handler {
 		start := time.Now()
 
 		err := c.Next()
+		requestErr := err
+		if err != nil {
+			// 在日志输出前生成最终响应和错误详情；处理成功后返回 nil，避免重复处理。
+			err = c.App().ErrorHandler(c, err)
+		}
 		status := responseStatus(c, err)
 		duration := time.Since(start)
 
@@ -47,10 +53,18 @@ func Logger() fiber.Handler {
 			),
 		}
 
-		if err != nil {
+		if info := response.ErrorLogFromContext(c); info != nil {
+			attributes = append(attributes,
+				slog.String("error_code", string(info.Code)),
+				slog.String("error_message", info.Message),
+			)
+			if info.Err != nil {
+				attributes = append(attributes, slog.Any("error", info.Err))
+			}
+		} else if requestErr != nil {
 			attributes = append(
 				attributes,
-				slog.String("error", err.Error()),
+				slog.String("error", requestErr.Error()),
 			)
 		}
 

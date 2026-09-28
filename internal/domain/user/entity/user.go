@@ -12,7 +12,6 @@ type User struct {
 	Username  string
 	Password  string
 	Avatar    string
-	Account   UserAccount
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time
@@ -30,12 +29,6 @@ func NewUser(phone, email, username, password string) (*User, error) {
 		Password:  password,
 		CreatedAt: now,
 		UpdatedAt: now,
-	}
-	user.Account = UserAccount{
-		FrozenBalance: Money{},
-		Balance:       Money{},
-		CreatedAt:     now,
-		UpdatedAt:     now,
 	}
 	return user, nil
 }

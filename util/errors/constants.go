@@ -9,6 +9,7 @@ const (
 	ErrDatabaseError ErrorCode = "Database_Error"
 	ErrInteger       ErrorCode = "ERROR_INTEGER"
 	ErrDateFormat    ErrorCode = "ERROR_DATE_FORMAT"
+	ErrRateLimited   ErrorCode = "RATE_LIMITED"
 )
 
 // 用户领域错误代码
@@ -23,23 +24,4 @@ const (
 	ErrEmailEmpty        ErrorCode = "USER_EMAIL_EMPTY"
 	ErrEmailFormat       ErrorCode = "USER_EMAIL_FORMAT"
 	ErrAlphaNumUnicode   ErrorCode = "USER_ALPHA_NUM_UNICODE"
-)
-
-// 商品领域错误代码
-
-const (
-	ErrProductNotFound  ErrorCode = "PRODUCT_NOT_FOUND"
-	ErrNoSkuPrice       ErrorCode = "HOTEL_NO_SKU_PRICE"
-	ErrNoStock          ErrorCode = "HOTEL_NO_STOCK"
-	ErrTicketNotSupport ErrorCode = "HOTEL_TICKET_NOT_SUPPORT"
-)
-
-// 订单领域错误代码
-const (
-	ErrOrderNotFound     ErrorCode = "ORDER_NOT_FOUND"
-	ErrInsufficientStock ErrorCode = "ORDER_INSUFFICIENT_STOCK"
-	ErrPaymentFailed     ErrorCode = "ORDER_PAYMENT_FAILED"
-	ErrStartDatePast     ErrorCode = "ORDER_START_DATE_PAST"
-	ErrStartDateDisorder ErrorCode = "ORDER_START_DATE_DISORDER"
-	ErrBookingConflict   ErrorCode = "ORDER_BOOKING_CONFLICT"
 )

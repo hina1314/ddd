@@ -1,0 +1,48 @@
+groups:
+  - name: app-api-alerts
+    interval: 5s
+
+    rules:
+      - alert: APIHigh5xxErrorRate
+
+        expr: |
+          (
+            sum(rate(app_http_requests_total{
+              job="app-api",
+              status=~"5.."
+            }[1m]))
+            /
+            sum(rate(app_http_requests_total{
+              job="app-api"
+            }[1m]))
+          ) > 0.20
+          and
+          sum(increase(app_http_requests_total{
+            job="app-api"
+          }[1m])) >= 10
+
+        for: 15s
+
+        labels:
+          severity: warning
+          service: app-api
+
+        annotations:
+          summary: "app-api 5xx error rate is high"
+          description: "5xx error rate exceeded 20% for 15 seconds."
+
+
+      - alert: APIDown
+
+        expr: up{job="app-api"} == 0
+
+        for: 15s
+
+        labels:
+          severity: critical
+          service: app-api
+
+        annotations:
+          summary: "app-api is unreachable"
+          description: "{{ $labels.instance }} has been unreachable for 15 seconds."
+          runbook: "ops/runbooks/app-api-down.md"

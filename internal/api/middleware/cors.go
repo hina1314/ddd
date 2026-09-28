@@ -11,7 +11,7 @@ func Cors(allowOrigin []string) fiber.Handler {
 		AllowOriginsFunc:    nil,
 		AllowOrigins:        allowOrigin,
 		AllowMethods:        nil,
-		AllowHeaders:        []string{"Origin, Content-Type, Accept, Authorization"},
+		AllowHeaders:        []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:       nil,
 		MaxAge:              3600,
 		AllowCredentials:    true,

@@ -1,26 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install this file as root-owned /usr/local/sbin/study-deploy. Do not execute
+# Install this file as root-owned /usr/local/sbin/app-deploy. Do not execute
 # the copy in the checkout with sudo: the checkout is writable by the SSH user.
-repo=/opt/apps/ddd
+repo=/opt/apps/app
 compose_dir="$repo/ops/docker"
-image_repo=ghcr.io/hina1314/ddd
 
 if (( $# != 1 )) || [[ ! $1 =~ ^[0-9a-f]{40}$ ]]; then
-  echo "usage: study-deploy <full-main-commit-sha>" >&2
+  echo "usage: app-deploy <full-main-commit-sha>" >&2
   exit 2
 fi
 if (( EUID != 0 )); then
-  echo "study-deploy must run as root" >&2
+  echo "app-deploy must run as root" >&2
   exit 2
 fi
 
 sha=$1
-image="$image_repo:sha-$sha"
 cd "$compose_dir"
 
-exec 9>/var/lock/study-deploy.lock
+exec 9>/var/lock/app-deploy.lock
 flock -n 9 || { echo "another deployment is running" >&2; exit 1; }
 
 cd "$repo"
@@ -33,20 +31,22 @@ fi
 cd "$compose_dir"
 
 env_file="$compose_dir/.env"
-if [[ ! -f $env_file ]] || [[ $(grep -c '^STUDY_IMAGE=' "$env_file") != 1 ]]; then
-  echo "expected exactly one STUDY_IMAGE in $env_file" >&2
+if [[ ! -f $env_file ]] || [[ $(grep -c '^APP_IMAGE=' "$env_file") != 1 ]]; then
+  echo "expected exactly one APP_IMAGE in $env_file" >&2
   exit 1
 fi
-old_image=$(sed -n 's/^STUDY_IMAGE=//p' "$env_file")
+old_image=$(sed -n 's/^APP_IMAGE=//p' "$env_file")
 if [[ ! $old_image =~ ^[a-zA-Z0-9._/@:-]+$ ]]; then
   echo "current image is invalid" >&2
   exit 1
 fi
+image_repo=${old_image%:*}
+image="$image_repo:sha-$sha"
 
 set_image() {
   local next_image=$1 temp
   temp=$(mktemp "$compose_dir/.env.deploy.XXXXXXXX")
-  if ! sed "s|^STUDY_IMAGE=.*|STUDY_IMAGE=$next_image|" "$env_file" > "$temp"; then
+  if ! sed "s|^APP_IMAGE=.*|APP_IMAGE=$next_image|" "$env_file" > "$temp"; then
     rm -f -- "$temp"
     return 1
   fi

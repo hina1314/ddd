@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"github.com/gofiber/fiber/v3"
+	"github.com/hina1314/ddd/config"
+	"github.com/hina1314/ddd/internal/api/middleware"
+	"github.com/hina1314/ddd/internal/api/router"
+	"github.com/hina1314/ddd/internal/di"
 	"log"
 	"log/slog"
 	"os"
 	"os/signal"
-	"study/config"
-	"study/internal/api/router"
-	"study/internal/di"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -24,17 +25,17 @@ var version = "dev"
 
 // main 是应用程序的入口点。
 func main() {
-	slog.SetDefault(
-		slog.New(
-			slog.NewJSONHandler(os.Stdout, nil),
-		).With("service", "study-api"),
-	)
-	slog.Info("application entrypoint reached", "version", version)
 	// 加载配置
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	slog.SetDefault(
+		slog.New(
+			slog.NewJSONHandler(os.Stdout, nil),
+		).With("service", cfg.AppName, "environment", cfg.Environment),
+	)
+	slog.Info("application entrypoint reached", "version", version)
 	slog.Info("configuration loaded")
 
 	// 初始化依赖
@@ -46,6 +47,9 @@ func main() {
 
 	// 创建 Fiber 服务器
 	server := deps.NewServer()
+	if err := middleware.RegisterDatabaseMetrics(deps.DB); err != nil {
+		log.Fatalf("Failed to register database metrics: %v", err)
+	}
 	// 设置中间件
 	router.SetupMiddleware(server, deps)
 
@@ -91,7 +95,13 @@ func main() {
 	healthCtx, stopHealth := context.WithCancel(context.Background())
 	defer stopHealth()
 
-	go monitorDatabase(healthCtx, deps.DB, &dbHealthy)
+	go monitorDatabase(
+		healthCtx,
+		deps.DB,
+		&dbHealthy,
+		cfg.HealthCheckInterval,
+		cfg.HealthCheckTimeout,
+	)
 
 	accepting.Store(true)
 
@@ -150,8 +160,10 @@ func monitorDatabase(
 	ctx context.Context,
 	db databasePinger,
 	healthy *atomic.Bool,
+	interval time.Duration,
+	timeout time.Duration,
 ) {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	failures := 0
@@ -163,7 +175,7 @@ func monitorDatabase(
 			return
 
 		case <-ticker.C:
-			probeCtx, cancel := context.WithTimeout(ctx, time.Second)
+			probeCtx, cancel := context.WithTimeout(ctx, timeout)
 			err := db.PingContext(probeCtx)
 			cancel()
 

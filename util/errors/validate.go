@@ -2,16 +2,18 @@ package errors
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"regexp"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
+
+var mainlandChinaPhonePattern = regexp.MustCompile(`^1[3-9]\d{9}$`)
 
 // PhoneValidator 自定义校验函数
 func PhoneValidator(fl validator.FieldLevel) bool {
 	phone := fl.Field().String()
-	phoneRegex := regexp.MustCompile(`^1[3-9]\d{9}$`)
-	return phoneRegex.MatchString(phone)
+	return mainlandChinaPhonePattern.MatchString(phone)
 }
 
 // ValidationErrorToDomainError 将单个验证错误转换为 DomainError。

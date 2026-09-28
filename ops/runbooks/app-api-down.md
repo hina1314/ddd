@@ -1,4 +1,4 @@
-# Runbook: StudyAPIDown
+# Runbook: APIDown
 
 ## 告警含义
 
@@ -73,8 +73,8 @@ go run .
 * /livez 返回200
 * /readyz 返回200
 * /metrics 返回200
-* up{job="study-api"} 返回1
-* StudyAPIDown发送resolved
+* up{job="app-api"} 返回1
+* APIDown发送resolved
 * 核心业务接口通过冒烟测试
 
 仅仅看到进程存在，不代表服务已经恢复。

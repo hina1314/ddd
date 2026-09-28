@@ -10,23 +10,17 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/wire"
-	_ "github.com/lib/pq"
-	"study/config"
-	"study/db/model"
-	"study/internal/api/handler"
-	"study/internal/api/response"
-	"study/internal/app/order"
-	"study/internal/app/product"
-	"study/internal/app/user"
-	orderService "study/internal/domain/order"
-	productService "study/internal/domain/product"
-	userService "study/internal/domain/user/service"
-	orderRepo "study/internal/infra/order"
-	productRepo "study/internal/infra/product"
-	userRepo "study/internal/infra/user"
-	"study/token"
-	"study/util/errors"
-	"study/util/i18n"
+	"github.com/hina1314/ddd/config"
+	"github.com/hina1314/ddd/db/model"
+	"github.com/hina1314/ddd/internal/api/handler"
+	"github.com/hina1314/ddd/internal/api/response"
+	"github.com/hina1314/ddd/internal/app/user"
+	userService "github.com/hina1314/ddd/internal/domain/user/service"
+	userRepo "github.com/hina1314/ddd/internal/infra/user"
+	"github.com/hina1314/ddd/token"
+	"github.com/hina1314/ddd/util/errors"
+	"github.com/hina1314/ddd/util/i18n"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"time"
 )
 
@@ -35,8 +29,6 @@ type Dependencies struct {
 	DB              *model.SQLStore
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
-	ProductHandler  *handler.ProductHandler
-	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
@@ -45,7 +37,7 @@ type Dependencies struct {
 // NewServer 返回 Fiber 服务器实例。
 func (d *Dependencies) NewServer() *fiber.App {
 	if d.server == nil {
-		d.server = newFiberApp(d.ResponseHandler)
+		d.server = newFiberApp(d.ResponseHandler, d.Config)
 	}
 	return d.server
 }
@@ -73,29 +65,17 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 		newFileTranslator,
 		newTranslationService,
 		userRepo.NewUserRepository,
-		productRepo.NewProductRepository,
-		orderRepo.NewOrderRepository,
 		// 领域层
 		// user
 		userService.NewUserLoginService,
 		userService.NewUserRegisterService,
 		userService.NewUserUpdateService,
 
-		// product
-		productService.NewService,
-
-		// order
-		orderService.NewService,
-
 		// 应用层
 		user.NewUserService,
-		product.NewAppService,
-		order.NewAppService,
 		// 表现层
 		response.NewResponseHandler,
 		handler.NewUserHandler,
-		handler.NewOrderHandler,
-		handler.NewProductHandler,
 
 		// 返回值
 		wire.Struct(new(Dependencies), "*"),
@@ -105,9 +85,15 @@ func initializeDependencies(cfg config.Config) (*Dependencies, error) {
 
 func newFiberApp(
 	responseHandler *response.ResponseHandler,
+	cfg config.Config,
 ) *fiber.App {
 	return fiber.New(fiber.Config{
 		ErrorHandler: responseHandler.HandleError,
+		ReadTimeout:  cfg.ServerReadTimeout,
+		WriteTimeout: cfg.ServerWriteTimeout,
+		IdleTimeout:  cfg.ServerIdleTimeout,
+		BodyLimit:    cfg.ServerBodyLimit,
+		ServerHeader: cfg.AppName,
 	})
 }
 
@@ -116,6 +102,10 @@ func newDB(cfg config.Config) (*model.SQLStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
+	db.SetMaxOpenConns(cfg.DBMaxOpenConns)
+	db.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	db.SetConnMaxLifetime(cfg.DBConnMaxLifetime)
+	db.SetConnMaxIdleTime(cfg.DBConnMaxIdleTime)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -137,7 +127,7 @@ func newDB(cfg config.Config) (*model.SQLStore, error) {
 }
 
 func newTokenMaker(cfg config.Config) (token.Maker, error) {
-	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
+	return token.NewPasetoMaker(cfg.TokenSymmetricKey, cfg.TokenIssuer, cfg.TokenAudience)
 }
 
 func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
@@ -154,11 +144,10 @@ func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n
 	}
 	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
 }
-func newValidator() *validator.Validate {
+func newValidator() (*validator.Validate, error) {
 	v := validator.New()
-	// 注册自定义 tag "phone"
 	if err := v.RegisterValidation("phone", errors.PhoneValidator); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("register phone validation: %w", err)
 	}
-	return v
+	return v, nil
 }

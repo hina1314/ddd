@@ -3,11 +3,11 @@ package user
 import (
 	"context"
 	"database/sql"
-	"study/db/model"
-	"study/internal/domain/user/entity"
-	"study/internal/domain/user/repository"
-	"study/internal/infra"
-	"study/util/errors"
+	"github.com/hina1314/ddd/db/model"
+	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/ddd/internal/infra"
+	"github.com/hina1314/ddd/util/errors"
 	"time"
 )
 
@@ -31,7 +31,7 @@ func (r *UserRepositoryImpl) toDomain(u model.User) (*entity.User, error) {
 
 	return &entity.User{
 		ID:        u.ID,
-		Phone:     u.Phone,
+		Phone:     u.Phone.String,
 		Username:  u.Username,
 		Email:     emailVO,
 		Password:  u.Password,
@@ -51,7 +51,7 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 }
 
 func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*entity.User, error) {
-	u, err := r.db.Querier(ctx).GetUserByPhone(ctx, phone)
+	u, err := r.db.Querier(ctx).GetUserByPhone(ctx, toNullString(phone))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*ent
 func (r *UserRepositoryImpl) Save(ctx context.Context, u *entity.User) error {
 	q := r.db.Querier(ctx)
 	arg := model.CreateUserParams{
-		Phone:    u.Phone,
+		Phone:    toNullString(u.Phone),
 		Email:    emailToNullString(u.Email),
 		Username: u.Username,
 		Password: u.Password,
@@ -91,71 +91,62 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *entity.User) error {
 		return err
 	}
 	u.ID = result.ID
-	u.Account.UserID = result.ID
 	u.CreatedAt = result.CreatedAt
 	u.UpdatedAt = result.UpdatedAt
-
-	err = q.CreateUserAccount(ctx, model.CreateUserAccountParams{
-		UserID:        u.ID,
-		FrozenBalance: u.Account.FrozenBalance.Amount,
-		Balance:       u.Account.Balance.Amount,
-	})
-	if err != nil {
-		if infra.IsDuplicateKeyError(err) {
-			return errors.New(errors.ErrUserAlreadyExists, "UserAccount already exists")
-		}
-		return err
-	}
 	return nil
 }
 
 func (r *UserRepositoryImpl) Update(ctx context.Context, u *entity.User) error {
 	arg := model.UpdateUserParams{
 		ID:       u.ID,
-		Phone:    u.Phone,
+		Phone:    toNullString(u.Phone),
 		Email:    emailToNullString(u.Email),
 		Username: u.Username,
 		Password: u.Password,
 	}
 
-	err := r.db.Querier(ctx).UpdateUser(ctx, arg)
+	rows, err := r.db.Querier(ctx).UpdateUser(ctx, arg)
 	if err != nil {
 		if infra.IsDuplicateKeyError(err) {
 			return errors.New(errors.ErrUserAlreadyExists, "User already exists")
 		}
 		return err
 	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
 	return nil
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id int64) error {
-	return r.db.Querier(ctx).DeleteUser(ctx, id)
+	rows, err := r.db.Querier(ctx).DeleteUser(ctx, id)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
-func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*entity.User, int, error) {
+func (r *UserRepositoryImpl) List(ctx context.Context, limit int, afterID int64) ([]*entity.User, error) {
 	users, err := r.db.Querier(ctx).ListUsers(ctx, model.ListUsersParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		AfterID:  afterID,
+		PageSize: int32(limit),
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	result := make([]*entity.User, 0, len(users))
 	for _, u := range users {
 		domainUser, err := r.toDomain(u)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		result = append(result, domainUser)
 	}
-
-	// **修复 CountUsers 需要查询数据库**
-	count, err := r.db.Querier(ctx).CountUsers(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	return result, int(count), nil
+	return result, nil
 }
 
 func emailToNullString(email entity.Email) sql.NullString {

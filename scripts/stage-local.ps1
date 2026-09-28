@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory = $true)]
     [string]$ArchivePath,
 
@@ -20,7 +20,7 @@ $checksums = (Resolve-Path -LiteralPath $ChecksumsPath -ErrorAction Stop).Path
 $config = (Resolve-Path -LiteralPath $ConfigPath -ErrorAction Stop).Path
 $archiveName = [System.IO.Path]::GetFileName($archive)
 
-if ($archiveName -notmatch '^study-api_(v\d+\.\d+\.\d+)_windows_amd64\.zip$') {
+if ($archiveName -notmatch '^app-api_(v\d+\.\d+\.\d+)_windows_amd64\.zip$') {
     throw "不是预期的 Windows Release 包：$archiveName"
 }
 $version = $Matches[1]
@@ -57,8 +57,8 @@ $configText = $addressPattern.Replace($configText, "SERVER_ADDRESS=127.0.0.1:$Ta
 
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Expand-Archive -LiteralPath $archive -DestinationPath $stageDir
-$appDir = Join-Path $stageDir "study-api_${version}_windows_amd64"
-$exePath = Join-Path $appDir 'study-api.exe'
+$appDir = Join-Path $stageDir "app-api_${version}_windows_amd64"
+$exePath = Join-Path $appDir 'app-api.exe'
 if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
     throw "包中未找到可执行文件：$exePath"
 }

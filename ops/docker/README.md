@@ -39,7 +39,7 @@ The existing manual trigger is retained for retries; check that the image for
 that commit has been published before using it. Superseded commits are skipped
 if `main` has advanced before the server checkout is changed.
 
-The workflow uses SSH to update `/opt/apps/ddd` to the exact commit, then calls a
+The workflow uses SSH to update `/opt/apps/app` to the exact commit, then calls a
 root-owned helper. The helper pulls the matching immutable image, runs that
 commit's migrations, updates the API and checks both `/readyz` and
 `X-App-Version`. If API startup fails, it attempts to restore the previous image; it does
@@ -49,18 +49,18 @@ The single API instance can have a brief interruption during replacement.
 One-time server setup, after this workflow and helper have reached `main`:
 
 ```bash
-cd /opt/apps/ddd
+cd /opt/apps/app
 git fetch origin main
 git checkout main
 git pull --ff-only
-sudo install -o root -g root -m 0755 ops/docker/deploy.sh /usr/local/sbin/study-deploy
-sudo visudo -f /etc/sudoers.d/study-deploy
+sudo install -o root -g root -m 0755 ops/docker/deploy.sh /usr/local/sbin/app-deploy
+sudo visudo -f /etc/sudoers.d/app-deploy
 ```
 
 Put this single line in the sudoers file, then save it:
 
 ```text
-liao ALL=(root) NOPASSWD: /usr/local/sbin/study-deploy
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/app-deploy
 ```
 
 The helper validates its SHA argument and is copied outside the writable
@@ -70,15 +70,15 @@ production server, also protect the checkout from modification by the SSH
 account; this is a single-server learning setup.
 Reinstall the root-owned helper whenever `ops/docker/deploy.sh` changes.
 
-Create a dedicated SSH key for the workflow. Add only its **public** key to
-`liao`'s `~/.ssh/authorized_keys`; put its **private** key in the GitHub Actions
+Create a dedicated SSH key for the workflow. Add only its **public** key to the
+deploy account's `~/.ssh/authorized_keys`; put its **private** key in GitHub Actions
 repository secret `DEPLOY_SSH_KEY` (never commit it). Configure:
 
-- Repository variables: `DEPLOY_HOST` (server address), `DEPLOY_USER` (`liao`).
+- Repository variables: `DEPLOY_HOST` (server address), `DEPLOY_USER` (`deploy`).
 - Repository secret: `DEPLOY_KNOWN_HOSTS` (the verified SSH host-key line for
   that address; check its fingerprint against the server before saving it).
 
-The server's `liao` account must also be able to run `git fetch origin main`
+The server's deploy account must also be able to run `git fetch origin main`
 without an interactive password. Verify the SSH connection and `git fetch`
 before running the workflow. For a manual retry, start the workflow from the
 `main` branch in the GitHub Actions tab. If the image is private, the server's root Docker client
