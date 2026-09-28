@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
-	"study/internal/domain/user/entity"
-	"study/internal/domain/user/repository"
-	"study/util"
+	"github.com/google/uuid"
+	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/kit/errors"
+	passwordutil "github.com/hina1314/kit/password"
 )
 
 // UserRegisterService 用户领域服务
@@ -19,19 +21,18 @@ func NewUserRegisterService(userRepo repository.UserRepository) *UserRegisterSer
 	}
 }
 
-// RegisterUser 注册新用户（包含账户创建）
+// RegisterUser 注册新用户。
 func (s *UserRegisterService) RegisterUser(ctx context.Context, phone, email, password string) (*entity.User, error) {
 	var (
 		user *entity.User
 		err  error
 	)
-	passwordHash, err := util.HashPassword(password)
+	passwordHash, err := passwordutil.HashPassword(password)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, errors.ErrInvalidInput, "invalid password")
 	}
 
-	r := util.NewRandUtil()
-	username := r.String(6)
+	username := "user_" + uuid.NewString()[:12]
 	// 创建用户
 	user, err = entity.NewUser(phone, email, username, passwordHash)
 	if err != nil {

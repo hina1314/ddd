@@ -8,78 +8,73 @@ package di
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
-	"study/config"
-	"study/db/model"
-	"study/internal/api/handler"
-	"study/internal/api/response"
-	order3 "study/internal/app/order"
-	product3 "study/internal/app/product"
-	user2 "study/internal/app/user"
-	order2 "study/internal/domain/order"
-	product2 "study/internal/domain/product"
-	"study/internal/domain/user/service"
-	"study/internal/infra/order"
-	"study/internal/infra/product"
-	"study/internal/infra/user"
-	"study/token"
-	"study/util/errors"
-	"study/util/i18n"
+	"github.com/hina1314/ddd/config"
+	"github.com/hina1314/ddd/db/model"
+	"github.com/hina1314/ddd/internal/api/handler"
+	"github.com/hina1314/ddd/internal/api/presentation"
+	"github.com/hina1314/ddd/internal/api/validation"
+	user2 "github.com/hina1314/ddd/internal/app/user"
+	"github.com/hina1314/ddd/internal/domain/user/service"
+	"github.com/hina1314/ddd/internal/infra/user"
+	"github.com/hina1314/ddd/token"
+	"github.com/hina1314/kit/database"
+	"github.com/hina1314/kit/errors"
+	"github.com/hina1314/kit/i18n"
+	"github.com/hina1314/kit/response"
+	"log/slog"
 	"time"
 )
 
 import (
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Injectors from wire.go:
 
-func initializeDependencies(cfg config.Config) (*Dependencies, error) {
-	sqlStore, err := newDB(cfg)
+func initializeDependencies(cfg config.Config) (*Dependencies, func(), error) {
+	sqlStore, cleanup, err := newDB(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	errorHandler := newErrorHandler(cfg)
 	fileTranslator := newFileTranslator()
 	translationService, err := newTranslationService(fileTranslator, cfg)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
-	responseHandler := response.NewResponseHandler(errorHandler, translationService)
+	responseHandler := presentation.NewResponseHandler(errorHandler, translationService)
 	userRepository := user.NewUserRepository(sqlStore)
 	userRegisterService := service.NewUserRegisterService(userRepository)
 	userLoginService := service.NewUserLoginService(userRepository)
 	userUpdateService := service.NewUserUpdateService(userRepository)
 	maker, err := newTokenMaker(cfg)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
-	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, sqlStore, maker)
-	validate := newValidator()
+	userService := user2.NewUserService(userRegisterService, userLoginService, userUpdateService, userRepository, cfg, maker)
+	validate, err := newValidator()
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	userHandler := handler.NewUserHandler(userService, responseHandler, validate)
-	repository := product.NewProductRepository(sqlStore)
-	productService := product2.NewService(repository)
-	appService := product3.NewAppService(productService, repository)
-	productHandler := handler.NewProductHandler(responseHandler, appService, validate)
-	orderRepository := order.NewOrderRepository(sqlStore)
-	orderService := order2.NewService(orderRepository)
-	orderAppService := order3.NewAppService(orderService, orderRepository, productService, repository)
-	orderHandler := handler.NewOrderHandler(responseHandler, orderAppService, validate)
-	app := newFiberApp(responseHandler)
+	app := newFiberApp(responseHandler, cfg)
 	dependencies := &Dependencies{
 		DB:              sqlStore,
 		ResponseHandler: responseHandler,
 		UserHandler:     userHandler,
-		ProductHandler:  productHandler,
-		OrderHandler:    orderHandler,
 		TokenMaker:      maker,
 		Config:          cfg,
 		server:          app,
 	}
-	return dependencies, nil
+	return dependencies, func() {
+		cleanup()
+	}, nil
 }
 
 // wire.go:
@@ -89,8 +84,6 @@ type Dependencies struct {
 	DB              *model.SQLStore
 	ResponseHandler *response.ResponseHandler
 	UserHandler     *handler.UserHandler
-	ProductHandler  *handler.ProductHandler
-	OrderHandler    *handler.OrderHandler
 	TokenMaker      token.Maker
 	Config          config.Config // 使用值类型
 	server          *fiber.App    // 非导出字段
@@ -99,14 +92,14 @@ type Dependencies struct {
 // NewServer 返回 Fiber 服务器实例。
 func (d *Dependencies) NewServer() *fiber.App {
 	if d.server == nil {
-		d.server = newFiberApp(d.ResponseHandler)
+		d.server = newFiberApp(d.ResponseHandler, d.Config)
 	}
 	return d.server
 }
 
 // NewDependencies 初始化所有依赖。
 func NewDependencies(cfg config.Config) (*Dependencies, error) {
-	deps, err := initializeDependencies(cfg)
+	deps, _, err := initializeDependencies(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -116,39 +109,39 @@ func NewDependencies(cfg config.Config) (*Dependencies, error) {
 
 func newFiberApp(
 	responseHandler *response.ResponseHandler,
+	cfg config.Config,
 ) *fiber.App {
 	return fiber.New(fiber.Config{
 		ErrorHandler: responseHandler.HandleError,
+		ReadTimeout:  cfg.ServerReadTimeout,
+		WriteTimeout: cfg.ServerWriteTimeout,
+		IdleTimeout:  cfg.ServerIdleTimeout,
+		BodyLimit:    cfg.ServerBodyLimit,
+		ServerHeader: cfg.AppName,
 	})
 }
 
-func newDB(cfg config.Config) (*model.SQLStore, error) {
-	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
+func newDB(cfg config.Config) (*model.SQLStore, func(), error) {
+	db, err := database.Open(context.Background(), database.Config{
+		Driver: cfg.DBDriver, Source: cfg.DBSource,
+		MaxOpenConns: cfg.DBMaxOpenConns, MaxIdleConns: cfg.DBMaxIdleConns,
+		ConnMaxLifetime: cfg.DBConnMaxLifetime, ConnMaxIdleTime: cfg.DBConnMaxIdleTime,
+		PingTimeout: 3 * time.Second,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	if err := db.PingContext(ctx); err != nil {
-
-		if closeErr := db.Close(); closeErr != nil {
-			return nil, fmt.Errorf(
-				"ping database: %w; close failed pool: %v",
-				err,
-				closeErr,
-			)
+	cleanup := func() {
+		if err := db.Close(); err != nil {
+			slog.Error("close database after dependency initialization failure", "error", err)
 		}
-
-		return nil, fmt.Errorf("ping database: %w", err)
 	}
-
-	return model.NewStore(db), nil
+	return model.NewStore(db), cleanup, nil
 }
 
 func newTokenMaker(cfg config.Config) (token.Maker, error) {
-	return token.NewPasetoMaker(cfg.TokenSymmetricKey)
+	return token.NewPasetoMaker(cfg.TokenSymmetricKey, cfg.TokenIssuer, cfg.TokenAudience)
 }
 
 func newErrorHandler(cfg config.Config) *errors.ErrorHandler {
@@ -166,11 +159,10 @@ func newTranslationService(translator i18n.Translator, cfg config.Config) (*i18n
 	return i18n.NewTranslationService(translator, cfg.DefaultLocale), nil
 }
 
-func newValidator() *validator.Validate {
+func newValidator() (*validator.Validate, error) {
 	v := validator.New()
-
-	if err := v.RegisterValidation("phone", errors.PhoneValidator); err != nil {
-		panic(err)
+	if err := v.RegisterValidation("phone", validation.PhoneValidator); err != nil {
+		return nil, fmt.Errorf("register phone validation: %w", err)
 	}
-	return v
+	return v, nil
 }

@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"study/internal/domain/user/entity"
-	"study/internal/domain/user/repository"
+	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/repository"
 )
 
 // UserUpdateService 用户修改服務

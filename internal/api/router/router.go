@@ -2,52 +2,60 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/google/uuid"
+	"github.com/hina1314/kit/metrics"
+	kitmiddleware "github.com/hina1314/kit/middleware"
 
-	"study/internal/api/handler"
-	"study/internal/api/middleware"
-	"study/internal/di"
+	"github.com/hina1314/ddd/internal/api/handler"
+	"github.com/hina1314/ddd/internal/api/middleware"
+	"github.com/hina1314/ddd/internal/di"
+	"github.com/hina1314/kit/errors"
 )
 
-func SetupMiddleware(app *fiber.App, deps *di.Dependencies) {
+func SetupMiddleware(app *fiber.App, deps *di.Dependencies, instrumentation *metrics.Metrics) {
 	// 必须最先生成 request_id，后面的日志才能读取它。
 	app.Use(requestid.New(requestid.Config{
 		Generator: uuid.NewString,
 	}))
-
-	app.Use(middleware.Logger())
-	app.Use(middleware.Metrics())
-	app.Get("/metrics", middleware.MetricsHandler())
-
-	app.Use(middleware.Cors(deps.Config.AllowedOrigins))
-	app.Use(middleware.Locale(deps.Config.DefaultLocale))
+	// 指标在统一错误处理完成后读取最终状态。
+	app.Use(instrumentation.Middleware())
+	app.Use(kitmiddleware.Logger())
+	// recover 在 Logger 内层运行，确保 panic 恢复后也能输出请求日志。
+	app.Use(recover.New())
+	app.Use(helmet.New())
+	app.Use(kitmiddleware.Cors(deps.Config.AllowedOrigins))
+	app.Use(kitmiddleware.Locale(deps.Config.DefaultLocale, deps.Config.SupportedLocales))
+	app.Get("/metrics", metrics.Auth(deps.Config.MetricsToken), instrumentation.Handler())
 }
 
 // Setup 只负责注册业务路由。
 func Setup(app *fiber.App, deps *di.Dependencies) {
 	v1 := app.Group("/v1")
-	v1.Post("/signup", deps.UserHandler.CreateUser)
-	v1.Post("/login", deps.UserHandler.Login)
+	authLimiter := limiter.New(limiter.Config{
+		Max:        deps.Config.AuthRateLimitMax,
+		Expiration: deps.Config.AuthRateLimitWindow,
+		LimitReached: func(c fiber.Ctx) error {
+			return deps.ResponseHandler.HandleError(
+				c,
+				errors.New(errors.ErrRateLimited, "too many authentication attempts"),
+			)
+		},
+	})
+	v1.Post("/signup", authLimiter, deps.UserHandler.CreateUser)
+	v1.Post("/login", authLimiter, deps.UserHandler.Login)
 
 	user := v1.Group("user",
 		middleware.Auth(deps.ResponseHandler, deps.TokenMaker),
 	)
-	order := v1.Group("order",
-		middleware.Auth(deps.ResponseHandler, deps.TokenMaker),
-	)
-
 	userRoutes(user, deps.UserHandler)
-	orderRoutes(order, deps.OrderHandler)
 }
 
 // userRoutes 配置用户相关的路由。
 func userRoutes(user fiber.Router, h *handler.UserHandler) {
-	user.Post("/info", h.Info)
-	user.Post("/update", h.Update)
-}
-
-func orderRoutes(order fiber.Router, h *handler.OrderHandler) {
-	// 订单创建尚未实现，暂不注册 /v1/order/create。
-	// order.Post("/create", h.CreateOrder)
+	user.Get("/info", h.Info)
+	user.Patch("/profile", h.Update)
 }

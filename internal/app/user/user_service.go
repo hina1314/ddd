@@ -2,12 +2,15 @@ package user
 
 import (
 	"context"
-	"study/config"
-	"study/db/model"
-	"study/internal/api/handler/dto"
-	"study/internal/domain/user/repository"
-	"study/internal/domain/user/service"
-	"study/token"
+	"database/sql"
+	stdErrors "errors"
+	"github.com/hina1314/ddd/config"
+	"github.com/hina1314/ddd/internal/api/handler/dto"
+	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/ddd/internal/domain/user/service"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
+	"github.com/hina1314/ddd/token"
+	"github.com/hina1314/kit/errors"
 )
 
 type UserService struct {
@@ -16,7 +19,6 @@ type UserService struct {
 	userUpdateService   *service.UserUpdateService
 	userRepo            repository.UserRepository
 	cfg                 config.Config
-	txManager           model.TxManager
 	token               token.Maker
 }
 
@@ -26,7 +28,6 @@ func NewUserService(
 	userUpdateService *service.UserUpdateService,
 	userRepo repository.UserRepository,
 	cfg config.Config,
-	txManager model.TxManager,
 	tokenMaker token.Maker,
 ) *UserService {
 	return &UserService{
@@ -35,7 +36,6 @@ func NewUserService(
 		userUpdateService:   userUpdateService,
 		userRepo:            userRepo,
 		cfg:                 cfg,
-		txManager:           txManager,
 		token:               tokenMaker,
 	}
 }
@@ -43,6 +43,9 @@ func NewUserService(
 func (s *UserService) GetUserByID(ctx context.Context, userId int64) (*dto.UserResponse, error) {
 	record, err := s.userRepo.GetByID(ctx, userId)
 	if err != nil {
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New(usererrors.ErrUserNotFound, "user not found")
+		}
 		return nil, err
 	}
 

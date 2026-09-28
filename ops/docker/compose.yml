@@ -27,7 +27,7 @@ services:
     restart: "no"
 
   api:
-    image: ${STUDY_IMAGE:?Set STUDY_IMAGE in ops/docker/.env}
+    image: ${APP_IMAGE:?Set APP_IMAGE in ops/docker/.env}
     restart: unless-stopped
     depends_on:
       migrate:

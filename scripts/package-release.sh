@@ -26,14 +26,14 @@ build_target() {
   local goos="$1"
   local goarch="$2"
   local extension="$3"
-  local package="study-api_${release_tag}_${goos}_${goarch}"
+  local package="app-api_${release_tag}_${goos}_${goarch}"
   local stage="$stage_root/$package"
 
   mkdir -p "$stage/config"
 
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
     go build -trimpath -ldflags="-s -w -X main.version=${release_tag}" \
-    -o "$stage/study-api${extension}" "$repo_root"
+    -o "$stage/app-api${extension}" "$repo_root"
 
   cp -R "$repo_root/config/i18n" "$stage/config/i18n"
   cp "$repo_root/app.env.example" "$stage/app.env.example"

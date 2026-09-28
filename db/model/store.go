@@ -43,6 +43,10 @@ func (s *SQLStore) PingContext(ctx context.Context) error {
 	return s.db.PingContext(ctx)
 }
 
+func (s *SQLStore) Stats() sql.DBStats {
+	return s.db.Stats()
+}
+
 func (s *SQLStore) Begin(ctx context.Context) (Tx, context.Context, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
