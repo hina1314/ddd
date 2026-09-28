@@ -1,7 +1,8 @@
 # Single-server Docker lab
 
 The Compose stack runs PostgreSQL, a one-shot database migration, and the API.
-PostgreSQL has no host port; the API listens only on host loopback port 3000.
+PostgreSQL has no host port; the API listens only on host loopback port 3001
+by default (`API_HOST_PORT` controls the host port).
 The database uses the named `postgres_data` volume. The volume is **not a backup**.
 
 On the server, use a checkout of this repository and run once:
@@ -18,10 +19,10 @@ Then start the stack from the Compose directory:
 
 ```bash
 cd ops/docker
-docker compose config --quiet
-docker compose up -d
-docker compose ps
-curl --fail --include http://127.0.0.1:3000/readyz
+sudo docker compose config --quiet
+sudo docker compose up -d
+sudo docker compose ps
+curl --fail --include http://127.0.0.1:3001/readyz
 ```
 
 `migrate` must complete successfully before `api` starts. For later schema
@@ -46,16 +47,54 @@ commit's migrations, updates the API and checks both `/readyz` and
 **not** reverse database migrations. Keep schema changes backward-compatible.
 The single API instance can have a brief interruption during replacement.
 
-One-time server setup, after this workflow and helper have reached `main`:
+### Replace the old lab with a fresh deployment
+
+For a full reset of the old `/opt/apps/ddd` deployment using the `liao`
+account, follow [the fresh deployment steps](../../docs/fresh-lab-deployment.md).
+Those steps delete the old Compose project's PostgreSQL volume and generate
+new credentials; use them only when the old data can be discarded.
+
+### First-time server setup
+
+One-time server setup, after this workflow and helper have reached `main`.
+The workflow requires an existing checkout; it does not create the directory,
+clone the repository, generate credentials or install the privileged helper.
+Run these commands on the deployment server, not on your local development PC.
+
+First create the checkout as the same account configured in `DEPLOY_USER`
+(the following commands assume the `deploy` account already exists):
 
 ```bash
+sudo install -d -o deploy -g "$(id -gn deploy)" -m 0755 /opt/apps/app
+sudo -u deploy git clone git@github.com:hina1314/ddd.git /opt/apps/app
+sudo -iu deploy
 cd /opt/apps/app
 git fetch origin main
 git checkout main
 git pull --ff-only
+exit
+```
+
+The deploy account needs repository read access for the clone and subsequent
+fetches. If your checkout already exists elsewhere, put it at the expected path;
+creating an empty `/opt/apps/app` directory is insufficient.
+
+Then, as the server administrator, initialize the configuration once and install
+the helper:
+
+```bash
+cd /opt/apps/app
+sudo bash ops/docker/prepare.sh
+sudoedit ops/docker/.env
 sudo install -o root -g root -m 0755 ops/docker/deploy.sh /usr/local/sbin/app-deploy
 sudo visudo -f /etc/sudoers.d/app-deploy
 ```
+
+Set `APP_IMAGE` to `ghcr.io/hina1314/ddd:sha-<full-commit-sha>` from the
+successful image publication step. Set `API_HOST_PORT` to the intended port.
+`prepare.sh` refuses to overwrite existing configuration; skip it if all three
+configuration files already exist. Docker Engine, the Compose plugin, Git,
+OpenSSL and curl must be available on the server.
 
 Put this single line in the sudoers file, then save it:
 

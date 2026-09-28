@@ -60,6 +60,25 @@ jobs:
           set -euo pipefail
           sha=$1
           repo=/opt/apps/app
+          if [ ! -d "$repo" ]; then
+            echo "Deployment checkout is missing: $repo" >&2
+            echo "Create the new checkout and install app-deploy using ops/docker/README.md before retrying." >&2
+            exit 1
+          fi
+          if ! git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            echo "$repo must contain a Git checkout of this repository." >&2
+            exit 1
+          fi
+          if [ ! -x /usr/local/sbin/app-deploy ]; then
+            echo "Missing deployment helper: install ops/docker/deploy.sh as /usr/local/sbin/app-deploy." >&2
+            exit 1
+          fi
+          for file in .env postgres.env app.env; do
+            if [ ! -f "$repo/ops/docker/$file" ]; then
+              echo "Missing server config: $repo/ops/docker/$file. Run prepare.sh once and configure APP_IMAGE." >&2
+              exit 1
+            fi
+          done
           cd "$repo"
           old_sha=$(git rev-parse HEAD)
           test -z "$(git status --porcelain --untracked-files=all)"
