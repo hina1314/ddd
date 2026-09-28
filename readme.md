@@ -2,7 +2,7 @@
 
 可直接复制作为新项目起点的 Go API 模板。核心只保留用户注册、登录、资料维护和通用基础设施，不包含商城业务。
 
-业务模板通过 Go 模块依赖使用独立仓库 [kit](https://github.com/hina1314/kit)。kit 维护错误、响应、日志、国际化、CORS、连接池、指标、健康检查、停机和密码工具；业务项目维护用户规则、SQL、仓储、Token 与装配。本仓库不再包含框架源码，也不使用本地 `replace`。目前固定 kit 已推送提交的伪版本，后续可以更新模块版本获得框架修复。详见 [框架升级与迁移](docs/framework-upgrades.md)。
+业务模板通过 Go 模块依赖使用独立仓库 [kit](https://github.com/hina1314/kit)。kit 维护错误、响应、日志、国际化、CORS、连接池、指标、健康检查、停机和密码工具；业务项目维护用户规则、SQL、仓储、Token 与装配。本仓库不再包含框架源码，也不使用本地 `replace`。目前固定 kit 已发布版本 `v0.1.0`，后续可以更新模块版本获得框架修复。详见 [框架升级与迁移](docs/framework-upgrades.md)。
 
 ## 技术栈
 
@@ -28,7 +28,7 @@ Linux/macOS：
 ./scripts/init-project.sh github.com/your-name/your-project your-project
 ```
 
-上述命令保留模板 `go.mod` 中固定的 kit 版本。kit 发布版本标签后，可以在初始化时选择该版本：
+上述命令保留模板 `go.mod` 中固定的 kit 版本，也可以在初始化时显式选择已发布版本：
 
 ```powershell
 ./scripts/init-project.ps1 -Module github.com/your-name/your-project -AppName your-project -KitVersion v0.1.0
@@ -38,7 +38,7 @@ Linux/macOS：
 ./scripts/init-project.sh github.com/your-name/your-project your-project v0.1.0
 ```
 
-`v0.1.0` 是发布后的用法示例，当前 kit 尚无版本标签。默认版本为 `v0.0.0-20260928124721-8410a2405303`；脚本也接受伪版本。初始化脚本只改业务模块导入，保留 `github.com/hina1314/kit` 引用；PowerShell 的旧参数 `-FrameworkVersion` 作为 `-KitVersion` 的别名兼容。
+默认版本为已发布的 `v0.1.0`；脚本也接受伪版本。初始化脚本只改业务模块导入，保留 `github.com/hina1314/kit` 引用；PowerShell 的旧参数 `-FrameworkVersion` 作为 `-KitVersion` 的别名兼容。
 
 复制配置并修改数据库连接和 32 字节令牌密钥：
 

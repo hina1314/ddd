@@ -11,13 +11,13 @@ kit 已迁到独立仓库，模板不再保存框架源码，也不包含框架�
 
 ## 当前固定版本
 
-模板直接从远端下载以下真实提交的版本，不需要同级 kit 目录：
+模板直接从远端下载已发布版本，不需要同级 kit 目录：
 
 ```go
-require github.com/hina1314/kit v0.0.0-20260928124721-8410a2405303
+require github.com/hina1314/kit v0.1.0
 ```
 
-这个伪版本对应已推送的提交 `8410a2405303`，不是占位版本。目前 kit 没有版本标签，模板未使用 `latest` 作为构建依赖。Docker 和 CI 都通过 `go.mod`、`go.sum` 下载相同版本。
+kit 已发布 `v0.1.0`，模板固定该版本，不使用 `latest` 作为构建依赖。Docker 和 CI 都通过 `go.mod`、`go.sum` 下载相同版本。
 
 ## 新项目初始化
 
@@ -31,7 +31,7 @@ require github.com/hina1314/kit v0.0.0-20260928124721-8410a2405303
 ./scripts/init-project.sh example.com/team/newapp newapp
 ```
 
-kit 发布 `v0.1.0` 后可以显式选择它：
+可以显式选择已发布的 `v0.1.0`：
 
 ```powershell
 ./scripts/init-project.ps1 -Module example.com/team/newapp -AppName newapp -KitVersion v0.1.0
@@ -41,18 +41,18 @@ kit 发布 `v0.1.0` 后可以显式选择它：
 ./scripts/init-project.sh example.com/team/newapp newapp v0.1.0
 ```
 
-上述标签是发布后的示例，当前尚不存在。脚本接受正式版本、预发布版本和伪版本；PowerShell 保留 `-FrameworkVersion` 参数别名。初始化会重命名业务模块、移除 kit 的本地替换、整理依赖、生成 Wire 并测试，不修改 kit 导入路径。
+脚本接受正式版本、预发布版本和伪版本；PowerShell 保留 `-FrameworkVersion` 参数别名。初始化会重命名业务模块、移除 kit 的本地替换、整理依赖、生成 Wire 并测试，不修改 kit 导入路径。
 
 ## kit 发布与项目升级
 
-在 kit 仓库中提交代码并合入 main，等待独立 CI 的格式、依赖、vet、竞态测试与构建检查通过。正式发布时使用仓库根模块标签：
+在 kit 仓库中提交代码并合入 main，等待独立 CI 的格式、依赖、vet、竞态测试与构建检查通过。后续发布使用新的仓库根模块标签，例如：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
-这些发布命令未由本次迁移执行。kit 的模块在仓库根目录，标签直接使用 `v0.1.0`，不再添加子目录前缀。
+以上后续发布命令是示例，未在本次修复中执行。kit 的模块在仓库根目录，标签直接使用 `v0.1.1` 这样的版本号，不添加子目录前缀；已发布的 `v0.1.0` 不应重复创建或修改。
 
 业务项目升级到实际已发布的版本：
 
@@ -65,6 +65,8 @@ go build ./...
 ```
 
 发布标签前也可以显式指定已推送的提交，Go 会记录其伪版本。审查模块文件变更与迁移说明，再部署。兼容修复通常只需要更新依赖；配置、装配 API、SQL、数据库迁移和部署文件的变化仍需按迁移说明处理。
+
+升级后先运行 `go mod tidy`，再把 `go.mod`、`go.sum` 一起提交。CI 会重新整理并检查这两个文件没有差异；旧伪版本校验记录未清理就提交，会在此步骤失败。该检查应保留。
 
 ## 本地共同开发
 
