@@ -2,6 +2,12 @@ name: Deploy to lab server
 
 on:
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      DEPLOY_SSH_KEY:
+        required: true
+      DEPLOY_KNOWN_HOSTS:
+        required: true
 
 permissions:
   contents: read
@@ -45,6 +51,9 @@ jobs:
 
           ssh -i "$ssh_dir/key" \
             -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$ssh_dir/known_hosts" \
             "$DEPLOY_USER@$DEPLOY_HOST" "bash -se -- $DEPLOY_SHA" <<'REMOTE'
@@ -55,7 +64,10 @@ jobs:
           old_sha=$(git rev-parse HEAD)
           test -z "$(git status --porcelain --untracked-files=all)"
           git fetch origin main:refs/remotes/origin/main
-          test "$(git rev-parse origin/main)" = "$sha"
+          if [ "$(git rev-parse origin/main)" != "$sha" ]; then
+            echo "main has advanced; skipping superseded commit $sha"
+            exit 0
+          fi
           git checkout --detach "$sha"
           if ! sudo -n /usr/local/sbin/study-deploy "$sha"; then
             git checkout --detach "$old_sha" || true
