@@ -30,11 +30,16 @@ the API. Keep `postgres.env` and `app.env` on the server only. Back up the
 PostgreSQL data volume separately; do not use `docker compose down --volumes`
 when stopping this stack.
 
-## Manually triggered deployment from GitHub Actions
+## Automatic deployment from GitHub Actions
 
-The `Deploy to lab server` workflow deploys the current `main` commit only.
-First confirm that the CI `publish-image` job for that commit is green. The
-workflow uses SSH to update `/opt/apps/ddd` to the exact commit, then calls a
+On a push to `main` (including a merged pull request), CI verifies the code,
+builds and publishes the image, then calls `Deploy to lab server`. PRs and
+feature-branch pushes do not deploy. CI/image failures prevent deployment.
+The existing manual trigger is retained for retries; check that the image for
+that commit has been published before using it. Superseded commits are skipped
+if `main` has advanced before the server checkout is changed.
+
+The workflow uses SSH to update `/opt/apps/ddd` to the exact commit, then calls a
 root-owned helper. The helper pulls the matching immutable image, runs that
 commit's migrations, updates the API and checks both `/readyz` and
 `X-App-Version`. If API startup fails, it attempts to restore the previous image; it does
@@ -75,6 +80,6 @@ repository secret `DEPLOY_SSH_KEY` (never commit it). Configure:
 
 The server's `liao` account must also be able to run `git fetch origin main`
 without an interactive password. Verify the SSH connection and `git fetch`
-before running the workflow. Start the workflow from the `main` branch in the
-GitHub Actions tab. If the image is private, the server's root Docker client
+before running the workflow. For a manual retry, start the workflow from the
+`main` branch in the GitHub Actions tab. If the image is private, the server's root Docker client
 must already be logged in to GHCR with pull access.
