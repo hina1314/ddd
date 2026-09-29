@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/hina1314/ddd/internal/app/assemble"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
 	"github.com/hina1314/ddd/internal/domain/user/service"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	apperrors "github.com/hina1314/kit/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -78,4 +80,17 @@ func TestUpdateUserRejectsEmptyPatch(t *testing.T) {
 	var domainErr *apperrors.DomainError
 	require.ErrorAs(t, err, &domainErr)
 	require.Equal(t, apperrors.ErrInvalidInput, domainErr.Code)
+}
+
+func TestUpdateUserRejectsPasswordOverBcryptLimit(t *testing.T) {
+	repo := &userRepositoryStub{user: &entity.User{ID: 1}}
+	service := newUserServiceForUpdate(repo)
+	password := strings.Repeat("密", 25)
+
+	_, err := service.UpdateUser(context.Background(), &assemble.UpdateUserCommand{ID: 1, Password: &password})
+
+	var domainErr *apperrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, usererrors.ErrPasswordTooLong, domainErr.Code)
+	require.Nil(t, repo.updated)
 }

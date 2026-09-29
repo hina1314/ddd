@@ -10,6 +10,7 @@ const (
 	ErrUserInfoIncorrect errors.ErrorCode = "USER_INFO_INCORRECT"
 	ErrUserAlreadyExists errors.ErrorCode = "USER_ALREADY_EXISTS"
 	ErrMinLength         errors.ErrorCode = "USER_MIN_LENGTH"
+	ErrPasswordTooLong   errors.ErrorCode = "USER_PASSWORD_TOO_LONG"
 	ErrPhoneEmpty        errors.ErrorCode = "USER_PHONE_EMPTY"
 	ErrPhoneFormat       errors.ErrorCode = "USER_PHONE_FORMAT"
 	ErrEmailEmpty        errors.ErrorCode = "USER_EMAIL_EMPTY"

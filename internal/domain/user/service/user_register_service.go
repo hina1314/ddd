@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/passwordpolicy"
 	"github.com/hina1314/ddd/internal/domain/user/repository"
+	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	"github.com/hina1314/kit/errors"
 	passwordutil "github.com/hina1314/kit/password"
 )
@@ -23,6 +25,14 @@ func NewUserRegisterService(userRepo repository.UserRepository) *UserRegisterSer
 
 // RegisterUser 注册新用户。
 func (s *UserRegisterService) RegisterUser(ctx context.Context, phone, email, password string) (*entity.User, error) {
+	if passwordpolicy.TooShort(password) {
+		return nil, errors.New(usererrors.ErrMinLength, "password must contain at least 8 characters").
+			WithParams(map[string]interface{}{"field": "password", "min": passwordpolicy.MinCharacters})
+	}
+	if passwordpolicy.TooLong(password) {
+		return nil, errors.New(usererrors.ErrPasswordTooLong, "password must contain at most 72 bytes").
+			WithParams(map[string]interface{}{"field": "password", "max": passwordpolicy.MaxBytes})
+	}
 	var (
 		user *entity.User
 		err  error

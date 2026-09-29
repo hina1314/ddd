@@ -7,6 +7,7 @@ import (
 	"github.com/hina1314/ddd/internal/api/handler/dto"
 	"github.com/hina1314/ddd/internal/app/assemble"
 	"github.com/hina1314/ddd/internal/domain/user/entity"
+	"github.com/hina1314/ddd/internal/domain/user/passwordpolicy"
 	"github.com/hina1314/ddd/internal/domain/user/usererrors"
 	"github.com/hina1314/kit/errors"
 	"github.com/hina1314/kit/password"
@@ -19,8 +20,13 @@ func (s *UserService) UpdateUser(ctx context.Context, cmd *assemble.UpdateUserCo
 	if cmd.Username != nil && *cmd.Username == "" {
 		return nil, errors.New(errors.ErrInvalidInput, "username must not be empty")
 	}
-	if cmd.Password != nil && (len(*cmd.Password) < 8 || len(*cmd.Password) > 72) {
-		return nil, errors.New(errors.ErrInvalidInput, "password must contain 8 to 72 bytes")
+	if cmd.Password != nil && passwordpolicy.TooShort(*cmd.Password) {
+		return nil, errors.New(usererrors.ErrMinLength, "password must contain at least 8 characters").
+			WithParams(map[string]interface{}{"field": "password", "min": passwordpolicy.MinCharacters})
+	}
+	if cmd.Password != nil && passwordpolicy.TooLong(*cmd.Password) {
+		return nil, errors.New(usererrors.ErrPasswordTooLong, "password must contain at most 72 bytes").
+			WithParams(map[string]interface{}{"field": "password", "max": passwordpolicy.MaxBytes})
 	}
 	var (
 		user *entity.User

@@ -39,6 +39,8 @@ build_target() {
   cp "$repo_root/app.env.example" "$stage/app.env.example"
   cp "$repo_root/readme.md" "$stage/README.md"
   cp -R "$repo_root/ops" "$stage/ops"
+  mkdir -p "$stage/db"
+  cp -R "$repo_root/db/migration" "$stage/db/migration"
 
   if [[ "$goos" == "windows" ]]; then
     if command -v zip >/dev/null 2>&1; then

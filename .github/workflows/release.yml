@@ -68,7 +68,9 @@ jobs:
           go vet ./...
 
       - name: Check release script
-        run: bash -n scripts/package-release.sh
+        run: |
+          bash -n scripts/package-release.sh
+          bash -n scripts/verify-release.sh
 
       - name: Test
         run: |
@@ -103,6 +105,10 @@ jobs:
       - name: Build release archives
         shell: bash
         run: bash scripts/package-release.sh "$GITHUB_REF_NAME"
+
+      - name: Verify release archive contents
+        shell: bash
+        run: bash scripts/verify-release.sh "$GITHUB_REF_NAME"
 
       - name: Publish GitHub release
         env:

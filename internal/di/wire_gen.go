@@ -112,12 +112,16 @@ func newFiberApp(
 	cfg config.Config,
 ) *fiber.App {
 	return fiber.New(fiber.Config{
-		ErrorHandler: responseHandler.HandleError,
-		ReadTimeout:  cfg.ServerReadTimeout,
-		WriteTimeout: cfg.ServerWriteTimeout,
-		IdleTimeout:  cfg.ServerIdleTimeout,
-		BodyLimit:    cfg.ServerBodyLimit,
-		ServerHeader: cfg.AppName,
+		ErrorHandler:       responseHandler.HandleError,
+		ReadTimeout:        cfg.ServerReadTimeout,
+		WriteTimeout:       cfg.ServerWriteTimeout,
+		IdleTimeout:        cfg.ServerIdleTimeout,
+		BodyLimit:          cfg.ServerBodyLimit,
+		ServerHeader:       cfg.AppName,
+		ProxyHeader:        "X-Real-IP",
+		TrustProxy:         true,
+		TrustProxyConfig:   fiber.TrustProxyConfig{Proxies: cfg.ServerTrustedProxies},
+		EnableIPValidation: true,
 	})
 }
 
@@ -163,6 +167,9 @@ func newValidator() (*validator.Validate, error) {
 	v := validator.New()
 	if err := v.RegisterValidation("phone", validation.PhoneValidator); err != nil {
 		return nil, fmt.Errorf("register phone validation: %w", err)
+	}
+	if err := v.RegisterValidation("password", validation.PasswordValidator); err != nil {
+		return nil, fmt.Errorf("register password validation: %w", err)
 	}
 	return v, nil
 }
