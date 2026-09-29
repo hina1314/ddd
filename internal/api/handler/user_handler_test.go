@@ -30,6 +30,7 @@ func TestUserInputResponsesRemainCompatible(t *testing.T) {
 	responder := presentation.NewResponseHandler(errors.NewErrorHandler(false, false), i18n.NewTranslationService(translator, "zh"))
 	v := validator.New()
 	require.NoError(t, v.RegisterValidation("phone", validation.PhoneValidator))
+	require.NoError(t, v.RegisterValidation("password", validation.PasswordValidator))
 	userHandler := handler.NewUserHandler(nil, responder, v)
 
 	cases := []struct {
@@ -42,6 +43,7 @@ func TestUserInputResponsesRemainCompatible(t *testing.T) {
 		{"invalid phone", `{"type":1,"phone":"123","password":"12345678"}`, "USER_PHONE_FORMAT", "手机号格式不正确！"},
 		{"invalid email", `{"type":2,"email":"invalid","password":"12345678"}`, "USER_EMAIL_FORMAT", "邮箱格式不正确！"},
 		{"short password", `{"type":1,"phone":"13458667726","password":"123"}`, "USER_MIN_LENGTH", "password的长度最少为8位！"},
+		{"password over bcrypt byte limit", `{"type":1,"phone":"13458667726","password":"密密密密密密密密密密密密密密密密密密密密密密密密密"}`, "USER_PASSWORD_TOO_LONG", "password不能超过72字节！"},
 		{"missing password", `{"type":1,"phone":"13458667726"}`, "REQUIRED", "password为必填项！"},
 	}
 	for _, path := range []string{"/v1/login", "/v1/signup"} {

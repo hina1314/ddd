@@ -5,6 +5,7 @@ errors.USER_ALREADY_EXISTS: "User already exists"
 errors.USER_PHONE_FORMAT: "Invalid phone number"
 errors.USER_EMAIL_FORMAT: "Invalid email address"
 errors.USER_MIN_LENGTH: "{field} must contain at least {min} characters"
+errors.USER_PASSWORD_TOO_LONG: "{field} must contain at most {max} bytes"
 
 user.create: "User created"
 user.login: "Signed in"

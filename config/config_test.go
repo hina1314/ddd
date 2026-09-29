@@ -19,6 +19,7 @@ func setRequiredEnvironment(t *testing.T) {
 func TestLoadConfigFromEnvironment(t *testing.T) {
 	setRequiredEnvironment(t)
 	t.Setenv("DB_MAX_OPEN_CONNS", "40")
+	t.Setenv("SERVER_TRUSTED_PROXIES", "192.0.2.10, 172.18.0.1/32, ::1")
 
 	cfg, err := LoadConfig(t.TempDir())
 	require.NoError(t, err)
@@ -27,6 +28,14 @@ func TestLoadConfigFromEnvironment(t *testing.T) {
 	require.Equal(t, 10*time.Second, cfg.ServerReadTimeout)
 	require.Equal(t, []string{"https://admin.example.com", "http://localhost:5173"}, cfg.AllowedOrigins)
 	require.Equal(t, []string{"en", "zh"}, cfg.SupportedLocales)
+	require.Equal(t, []string{"192.0.2.10", "172.18.0.1/32", "::1"}, cfg.ServerTrustedProxies)
+}
+
+func TestLoadConfigRejectsInvalidTrustedProxy(t *testing.T) {
+	setRequiredEnvironment(t)
+	t.Setenv("SERVER_TRUSTED_PROXIES", "nginx.example.com")
+	_, err := LoadConfig(t.TempDir())
+	require.ErrorContains(t, err, "SERVER_TRUSTED_PROXIES")
 }
 
 func TestLoadConfigRejectsInvalidSecret(t *testing.T) {

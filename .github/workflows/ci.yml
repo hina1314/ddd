@@ -70,6 +70,7 @@ jobs:
       - name: Check release script
         run: |
           bash -n scripts/package-release.sh
+          bash -n scripts/verify-release.sh
           bash -n scripts/init-project.sh
           bash -n ops/docker/prepare.sh
           bash -n ops/docker/deploy.sh

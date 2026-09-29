@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -14,34 +15,35 @@ const tokenKeySize = 32
 
 // Config contains the runtime settings shared by the template infrastructure.
 type Config struct {
-	AppName             string        `mapstructure:"APP_NAME"`
-	Environment         string        `mapstructure:"ENVIRONMENT"`
-	DBDriver            string        `mapstructure:"DB_DRIVER"`
-	DBSource            string        `mapstructure:"DB_SOURCE"`
-	DBMaxOpenConns      int           `mapstructure:"DB_MAX_OPEN_CONNS"`
-	DBMaxIdleConns      int           `mapstructure:"DB_MAX_IDLE_CONNS"`
-	DBConnMaxLifetime   time.Duration `mapstructure:"DB_CONN_MAX_LIFETIME"`
-	DBConnMaxIdleTime   time.Duration `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
-	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
-	ServerReadTimeout   time.Duration `mapstructure:"SERVER_READ_TIMEOUT"`
-	ServerWriteTimeout  time.Duration `mapstructure:"SERVER_WRITE_TIMEOUT"`
-	ServerIdleTimeout   time.Duration `mapstructure:"SERVER_IDLE_TIMEOUT"`
-	ServerBodyLimit     int           `mapstructure:"SERVER_BODY_LIMIT"`
-	AllowedOrigins      []string      `mapstructure:"ALLOWED_ORIGINS"`
-	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
-	TokenIssuer         string        `mapstructure:"TOKEN_ISSUER"`
-	TokenAudience       string        `mapstructure:"TOKEN_AUDIENCE"`
-	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	DefaultLocale       string        `mapstructure:"DEFAULT_LOCALE"`
-	SupportedLocales    []string      `mapstructure:"SUPPORTED_LOCALES"`
-	AuthRateLimitMax    int           `mapstructure:"AUTH_RATE_LIMIT_MAX"`
-	AuthRateLimitWindow time.Duration `mapstructure:"AUTH_RATE_LIMIT_WINDOW"`
-	MetricsToken        string        `mapstructure:"METRICS_TOKEN"`
-	Debug               bool          `mapstructure:"DEBUG"`
-	TrafficDrainDelay   time.Duration `mapstructure:"TRAFFIC_DRAIN_DELAY"`
-	ShutdownTimeout     time.Duration `mapstructure:"SHUTDOWN_TIMEOUT"`
-	HealthCheckInterval time.Duration `mapstructure:"HEALTH_CHECK_INTERVAL"`
-	HealthCheckTimeout  time.Duration `mapstructure:"HEALTH_CHECK_TIMEOUT"`
+	AppName              string        `mapstructure:"APP_NAME"`
+	Environment          string        `mapstructure:"ENVIRONMENT"`
+	DBDriver             string        `mapstructure:"DB_DRIVER"`
+	DBSource             string        `mapstructure:"DB_SOURCE"`
+	DBMaxOpenConns       int           `mapstructure:"DB_MAX_OPEN_CONNS"`
+	DBMaxIdleConns       int           `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DBConnMaxLifetime    time.Duration `mapstructure:"DB_CONN_MAX_LIFETIME"`
+	DBConnMaxIdleTime    time.Duration `mapstructure:"DB_CONN_MAX_IDLE_TIME"`
+	ServerAddress        string        `mapstructure:"SERVER_ADDRESS"`
+	ServerReadTimeout    time.Duration `mapstructure:"SERVER_READ_TIMEOUT"`
+	ServerWriteTimeout   time.Duration `mapstructure:"SERVER_WRITE_TIMEOUT"`
+	ServerIdleTimeout    time.Duration `mapstructure:"SERVER_IDLE_TIMEOUT"`
+	ServerBodyLimit      int           `mapstructure:"SERVER_BODY_LIMIT"`
+	ServerTrustedProxies []string      `mapstructure:"SERVER_TRUSTED_PROXIES"`
+	AllowedOrigins       []string      `mapstructure:"ALLOWED_ORIGINS"`
+	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	TokenIssuer          string        `mapstructure:"TOKEN_ISSUER"`
+	TokenAudience        string        `mapstructure:"TOKEN_AUDIENCE"`
+	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	DefaultLocale        string        `mapstructure:"DEFAULT_LOCALE"`
+	SupportedLocales     []string      `mapstructure:"SUPPORTED_LOCALES"`
+	AuthRateLimitMax     int           `mapstructure:"AUTH_RATE_LIMIT_MAX"`
+	AuthRateLimitWindow  time.Duration `mapstructure:"AUTH_RATE_LIMIT_WINDOW"`
+	MetricsToken         string        `mapstructure:"METRICS_TOKEN"`
+	Debug                bool          `mapstructure:"DEBUG"`
+	TrafficDrainDelay    time.Duration `mapstructure:"TRAFFIC_DRAIN_DELAY"`
+	ShutdownTimeout      time.Duration `mapstructure:"SHUTDOWN_TIMEOUT"`
+	HealthCheckInterval  time.Duration `mapstructure:"HEALTH_CHECK_INTERVAL"`
+	HealthCheckTimeout   time.Duration `mapstructure:"HEALTH_CHECK_TIMEOUT"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -70,6 +72,7 @@ func LoadConfig(path string) (Config, error) {
 	}
 	cfg.AllowedOrigins = splitCSV(v.GetString("ALLOWED_ORIGINS"))
 	cfg.SupportedLocales = splitCSV(v.GetString("SUPPORTED_LOCALES"))
+	cfg.ServerTrustedProxies = splitCSV(v.GetString("SERVER_TRUSTED_PROXIES"))
 	if err := cfg.Validate(); err != nil {
 		return Config{}, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -107,6 +110,7 @@ func configKeys() []string {
 		"APP_NAME", "ENVIRONMENT", "DB_DRIVER", "DB_SOURCE",
 		"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME", "DB_CONN_MAX_IDLE_TIME",
 		"SERVER_ADDRESS", "SERVER_READ_TIMEOUT", "SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT", "SERVER_BODY_LIMIT",
+		"SERVER_TRUSTED_PROXIES",
 		"ALLOWED_ORIGINS", "TOKEN_SYMMETRIC_KEY", "TOKEN_ISSUER", "TOKEN_AUDIENCE", "ACCESS_TOKEN_DURATION",
 		"DEFAULT_LOCALE", "SUPPORTED_LOCALES", "AUTH_RATE_LIMIT_MAX", "AUTH_RATE_LIMIT_WINDOW",
 		"METRICS_TOKEN", "DEBUG", "TRAFFIC_DRAIN_DELAY", "SHUTDOWN_TIMEOUT",
@@ -146,6 +150,14 @@ func (c Config) Validate() error {
 	}
 	if c.ServerBodyLimit < 1024 {
 		return errors.New("SERVER_BODY_LIMIT must be at least 1024 bytes")
+	}
+	for _, proxy := range c.ServerTrustedProxies {
+		if _, err := netip.ParseAddr(proxy); err == nil {
+			continue
+		}
+		if _, err := netip.ParsePrefix(proxy); err != nil {
+			return fmt.Errorf("invalid SERVER_TRUSTED_PROXIES entry %q: expected IP or CIDR", proxy)
+		}
 	}
 	if len(c.TokenSymmetricKey) != tokenKeySize {
 		return fmt.Errorf("TOKEN_SYMMETRIC_KEY must be exactly %d bytes", tokenKeySize)

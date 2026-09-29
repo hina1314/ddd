@@ -6,14 +6,14 @@ type CreateUserRequest struct {
 	Type     int8   `json:"type" validate:"required,oneof=1 2"`
 	Phone    string `json:"phone" validate:"omitempty,phone"`
 	Email    string `json:"email" validate:"omitempty,email"`
-	Password string `json:"password" validate:"required,min=8,max=72"`
+	Password string `json:"password" validate:"required,password"`
 }
 
 type UpdateUserRequest struct {
 	Phone    *string `json:"phone" validate:"omitempty,phone"`
 	Email    *string `json:"email" validate:"omitempty,email"`
 	Username *string `json:"username" validate:"omitempty,min=1,max=32"`
-	Password *string `json:"password" validate:"omitempty,min=8,max=72"`
+	Password *string `json:"password" validate:"omitempty,password"`
 }
 
 type UserResponse struct {
@@ -28,5 +28,5 @@ type LoginUserRequest struct {
 	Type     int8   `json:"type" validate:"required,oneof=1 2"`
 	Phone    string `json:"phone" validate:"omitempty,phone"`
 	Email    string `json:"email" validate:"omitempty,email"`
-	Password string `json:"password" validate:"required,min=8,max=72"`
+	Password string `json:"password" validate:"required,password"`
 }

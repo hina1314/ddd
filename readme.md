@@ -65,6 +65,16 @@ go run .
 
 注册和登录接口有按客户端限流。请求包含 request ID；未处理的 panic 会被恢复，服务端错误会记录具体原因，但响应不会泄露内部错误。
 
+经 Nginx 代理时，在 `app.env`（Docker 部署为 `ops/docker/app.env`）设置 `SERVER_TRUSTED_PROXIES`，支持逗号分隔的 IP 或 CIDR。填写 API 实际看到的代理来源地址；Docker 部署中通常是容器网络的网关地址，不能直接照抄宿主机的 `127.0.0.1`。默认留空，忽略客户端提交的转发 IP。只允许受控代理地址，不要设置 `0.0.0.0/0`。
+
+Nginx 应配置 `proxy_set_header X-Real-IP $remote_addr;`，覆盖客户端传入的同名请求头。API 只信任白名单代理的 `X-Real-IP`，用于客户端 IP 日志及登录、注册限流。多级代理需要在最后一层可信代理中正确还原客户端地址。
+
+## 版本发布
+
+普通 CI 只检查发布脚本语法，不生成发布压缩包。推送本业务仓库的 `vMAJOR.MINOR.PATCH` 标签后，Release 工作流先验证标签和代码，再运行 `scripts/package-release.sh`，生成 Linux 和 Windows 压缩包及校验和；`scripts/verify-release.sh` 解压检查迁移文件和运行资源后，上传 GitHub Release。给独立 kit 仓库打标签不会触发本仓库的 Release。
+
+发布包包含 `db/migration`，供附带的 Compose 挂载。Compose 的 API 服务仍使用 `APP_IMAGE` 指定的 Docker 镜像，压缩包中的可执行文件供直接运行使用。当前 main 分支自动部署使用服务器 Git 检出的迁移目录和 CI 发布的镜像，不经过发布压缩包。
+
 ## 目录约定
 
 ```text

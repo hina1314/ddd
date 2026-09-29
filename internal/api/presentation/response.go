@@ -19,6 +19,7 @@ func NewResponseHandler(handler *errors.ErrorHandler, translator *i18n.Translati
 			usererrors.ErrUserAlreadyExists: http.StatusConflict,
 			usererrors.ErrUserInfoIncorrect: http.StatusBadRequest,
 			usererrors.ErrMinLength:         http.StatusBadRequest,
+			usererrors.ErrPasswordTooLong:   http.StatusBadRequest,
 			usererrors.ErrPhoneEmpty:        http.StatusBadRequest,
 			usererrors.ErrPhoneFormat:       http.StatusBadRequest,
 			usererrors.ErrEmailEmpty:        http.StatusBadRequest,
